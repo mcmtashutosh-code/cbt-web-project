@@ -1,0 +1,15 @@
+{
+  "name": "CBT Examination Portal",
+  "short_name": "CBT Portal",
+  "description": "Practice, Today's Challenge, Feedback, and Live Exam for CBT Assessment Platform",
+  "start_url": "./student_portal.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a1424",
+  "theme_color": "#16a085",
+  "icons": [
+    { "src": "student-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "student-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
