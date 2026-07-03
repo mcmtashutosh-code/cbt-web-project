@@ -2,7 +2,7 @@
   "name": "CBT Examination Portal",
   "short_name": "CBT Portal",
   "description": "Practice, Today's Challenge, Feedback, and Live Exam for CBT Assessment Platform",
-  "start_url": "./student_portal.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
