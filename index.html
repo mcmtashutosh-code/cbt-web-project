@@ -113,6 +113,7 @@
   .policy{margin:12px 0 0; background:var(--field); border:1px solid var(--warn); border-radius:var(--radius-sm); padding:12px 14px;}
   .policy .t{font-size:12px; font-weight:700; color:var(--warn); margin-bottom:4px;}
   .policy .b{font-size:12px; color:var(--text-dim); line-height:1.5;}
+  .policy .b code{background:var(--field-2); color:var(--accent-text); padding:1px 5px; border-radius:4px; font-size:11px;}
   .fb-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:14px; margin-bottom:12px;}
   .fb-card.replied{border-color:#1f6e56;}
   .fb-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;}
@@ -377,6 +378,10 @@
         <div class="mi">📝</div>
         <div><div class="mt">Feedback & suggestions</div><div class="ms">Share feedback, track admin replies</div></div>
       </div>
+      <div class="menu-card" id="menu-password">
+        <div class="mi">🔑</div>
+        <div><div class="mt">Change password</div><div class="ms">Update your login password</div></div>
+      </div>
     </div>
     <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
   </div>
@@ -416,6 +421,9 @@
         </div>
       </div>
 
+      <label class="field-label">Related Question ID (optional)</label>
+      <input id="fb-question-id" type="text" placeholder="e.g. 145 — check the top of the question screen while practicing">
+
       <label class="field-label">Feedback type</label>
       <div class="type-grid" id="fb-type-grid">
         <div class="type-chip sel" data-type="Suggestion">Suggestion</div>
@@ -436,6 +444,42 @@
       <div id="fb-status-list"></div>
       <button class="btn btn-ghost btn-sm" id="fb-btn-refresh" style="margin:0 0 22px;">Refresh</button>
     </div>
+  </div>
+
+  <!-- ============ CHANGE PASSWORD ============ -->
+  <div class="view" id="view-password">
+    <div class="section-title">Change password</div>
+    <div class="section-sub">Your mobile number / ID cannot be changed here — only your password.</div>
+
+    <div class="policy">
+      <div class="t">Password rules</div>
+      <div class="b">
+        • Minimum 6 characters<br>
+        • Must contain both letters and numbers (e.g. <code>ra3210</code>)<br>
+        • New password must be different from your current password
+      </div>
+    </div>
+
+    <label class="field-label">Current password</label>
+    <div class="pw-row">
+      <input id="pw-old" type="password" placeholder="Enter your current password" autocomplete="current-password">
+      <button type="button" class="pw-toggle" id="pw-old-toggle">SHOW</button>
+    </div>
+
+    <label class="field-label">New password</label>
+    <div class="pw-row">
+      <input id="pw-new" type="password" placeholder="Enter your new password" autocomplete="new-password">
+      <button type="button" class="pw-toggle" id="pw-new-toggle">SHOW</button>
+    </div>
+
+    <label class="field-label">Confirm new password</label>
+    <div class="pw-row">
+      <input id="pw-confirm" type="password" placeholder="Re-enter your new password" autocomplete="new-password">
+      <button type="button" class="pw-toggle" id="pw-confirm-toggle">SHOW</button>
+    </div>
+
+    <div class="error-text" id="pw-error"></div>
+    <button class="btn btn-primary" id="btn-change-password" style="margin:10px 0 22px;">🔑 Update password</button>
   </div>
 
   <!-- ============ PRACTICE: SETUP ============ -->
@@ -761,7 +805,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing']);
+const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password']);
 
 function updateTopBack(id){
   const btn = document.getElementById('btn-top-back');
@@ -852,6 +896,13 @@ document.getElementById('menu-practice').addEventListener('click', () => {
   showView('view-prac-setup');
   loadPracticeSetup();
 });
+document.getElementById('menu-password').addEventListener('click', () => {
+  document.getElementById('pw-old').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-error').textContent = '';
+  showView('view-password');
+});
 document.getElementById('menu-challenge').addEventListener('click', () => {
   showView('view-ch-list');
   loadChallenges();
@@ -900,12 +951,15 @@ document.getElementById('fb-btn-submit').addEventListener('click', submitFeedbac
 async function submitFeedback(){
   const course = document.getElementById('fb-course').value.trim();
   const year = document.getElementById('fb-year').value;
-  const message = fbMsgBox.value.trim();
+  const questionId = document.getElementById('fb-question-id').value.trim();
+  let message = fbMsgBox.value.trim();
   const hint = document.getElementById('fb-give-msg');
   hint.textContent = '';
 
   if (!message){ hint.textContent = 'Please enter your message before submitting.'; return; }
   if (message.length < 10){ hint.textContent = 'Please provide a bit more detail in your message.'; return; }
+
+  if (questionId){ message = `[Question ID: ${questionId}] ${message}`; }
 
   const btn = document.getElementById('fb-btn-submit');
   btn.disabled = true; btn.textContent = 'Submitting...';
@@ -917,6 +971,7 @@ async function submitFeedback(){
     if (ok){
       fbMsgBox.value = ''; document.getElementById('fb-char-count').textContent = '0';
       document.getElementById('fb-course').value = '';
+      document.getElementById('fb-question-id').value = '';
       toast('Feedback submitted successfully.', 'ok');
       fbShowTab('status');
     } else {
@@ -1092,7 +1147,7 @@ async function startPractice(){
       const newOpts = shuffled.map(x => x.o);
       const newAns = newOpts.indexOf(correctText);
       const solution = row.solution || row.explanation || row.solution_text || row.explanation_text || '';
-      return { q: row.question, options: newOpts, ans: newAns, solution: (solution||'').trim() };
+      return { id: row.id, q: row.question, options: newOpts, ans: newAns, solution: (solution||'').trim() };
     });
 
     pAnswers = pQuestions.map(() => -1);
@@ -1114,7 +1169,7 @@ function renderQuestion(){
   pRevealed = false;
   const q = pQuestions[pCurIndex];
   document.getElementById('q-count').textContent = `Question ${pCurIndex+1}/${pQuestions.length}`;
-  document.getElementById('q-subjtag').textContent = `${pSessionMeta.subject} · ${pSessionMeta.topic}`;
+  document.getElementById('q-subjtag').textContent = `${pSessionMeta.subject} · ${pSessionMeta.topic} · Q.ID: ${q.id}`;
   document.getElementById('progress-fill').style.width = `${((pCurIndex+1)/pQuestions.length)*100}%`;
   document.getElementById('q-text').textContent = q.q;
 
@@ -1293,7 +1348,7 @@ function renderSolutions(){
     }).join('');
     const statusLbl = pStatus[i] === true ? 'Correct' : pStatus[i] === false ? 'Incorrect' : 'Skipped';
     return `<div class="rev-card">
-      <div class="rev-q">${i+1}. ${esc(q.q)} <span style="font-size:11px; color:var(--text-mute);">(${statusLbl})</span></div>
+      <div class="rev-q">${i+1}. ${esc(q.q)} <span style="font-size:11px; color:var(--text-mute);">(${statusLbl} · Q.ID: ${q.id})</span></div>
       ${optsHtml}
       ${q.solution ? `<div class="solution-box show" style="margin-top:8px;"><div class="sl">Solution</div><div class="sm">${esc(q.solution)}</div></div>` : ''}
     </div>`;
@@ -1943,6 +1998,57 @@ window.addEventListener('beforeunload', (e) => {
     }catch(err){ /* best effort */ }
     e.preventDefault();
     e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   CHANGE PASSWORD
+   ============================================================ */
+function wirePwToggle(inputId, btnId){
+  document.getElementById(btnId).addEventListener('click', (e) => {
+    const inp = document.getElementById(inputId);
+    const showing = inp.type === 'text';
+    inp.type = showing ? 'password' : 'text';
+    e.target.textContent = showing ? 'SHOW' : 'HIDE';
+  });
+}
+wirePwToggle('pw-old', 'pw-old-toggle');
+wirePwToggle('pw-new', 'pw-new-toggle');
+wirePwToggle('pw-confirm', 'pw-confirm-toggle');
+
+document.getElementById('btn-change-password').addEventListener('click', async () => {
+  const oldPass = document.getElementById('pw-old').value;
+  const newPass = document.getElementById('pw-new').value;
+  const confirmPass = document.getElementById('pw-confirm').value;
+  const errEl = document.getElementById('pw-error');
+  errEl.textContent = '';
+
+  if (!oldPass){ errEl.textContent = 'Please enter your current password.'; return; }
+  if (!newPass || newPass.length < 6){ errEl.textContent = 'New password must be at least 6 characters long.'; return; }
+  if (!/[0-9]/.test(newPass) || !/[A-Za-z]/.test(newPass)){ errEl.textContent = 'New password must contain both letters and numbers.'; return; }
+  if (newPass !== confirmPass){ errEl.textContent = 'New password and confirmation do not match.'; return; }
+  if (newPass === oldPass){ errEl.textContent = 'New password must be different from your current password.'; return; }
+
+  const btn = document.getElementById('btn-change-password');
+  btn.disabled = true; btn.textContent = 'Updating...';
+  try{
+    const r = await rpc('change_student_password', {
+      p_mobile: session.mobile, p_old_password: oldPass, p_new_password: newPass
+    });
+    if (r.ok){
+      session.password = newPass;
+      document.getElementById('pw-old').value = '';
+      document.getElementById('pw-new').value = '';
+      document.getElementById('pw-confirm').value = '';
+      toast('Password updated successfully.', 'ok');
+      showView('view-home');
+    } else {
+      errEl.textContent = r.message || 'Unable to update password.';
+    }
+  }catch(err){
+    errEl.textContent = 'Connection error. Please try again.';
+  }finally{
+    btn.disabled = false; btn.textContent = '🔑 Update password';
   }
 });
 </script>
