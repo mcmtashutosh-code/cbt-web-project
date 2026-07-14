@@ -1446,6 +1446,15 @@ function buildChallengeCard(ch){
   qEl.textContent = ch.question;
   card.appendChild(qEl);
 
+  let imgEl = null;
+  if (ch.image_url){
+    imgEl = document.createElement('img');
+    imgEl.src = ch.image_url;
+    imgEl.alt = 'Question image';
+    imgEl.style.cssText = 'max-width:100%; max-height:280px; border-radius:10px; margin:8px 0; display:block;';
+    card.appendChild(imgEl);
+  }
+
   const opts = [ch.option1, ch.option2, ch.option3, ch.option4];
   const optsWrap = document.createElement('div');
   const tags = ['A','B','C','D'];
@@ -1479,6 +1488,7 @@ function buildChallengeCard(ch){
   // challenge — this stops them reading ahead / thinking it over before
   // the timer actually starts.
   qEl.style.display = 'none';
+  if (imgEl) imgEl.style.display = 'none';
   optsWrap.style.display = 'none';
 
   const preAcceptNote = document.createElement('div');
@@ -1533,6 +1543,7 @@ function buildChallengeCard(ch){
     timerEl.style.display = 'block';
     preAcceptNote.style.display = 'none';
     qEl.style.display = 'block';
+    if (imgEl) imgEl.style.display = 'block';
     optsWrap.style.display = 'block';
     startedAt = Date.now();
     document.addEventListener('visibilitychange', onVisibilityChange);
