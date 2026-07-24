@@ -97,6 +97,11 @@
   .menu-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; cursor:pointer; display:flex; align-items:center; gap:14px;}
   .menu-card:hover{border-color:var(--accent);}
   .menu-card.disabled{opacity:.5; cursor:default;}
+  .filter-row{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 2px;}
+  .filter-chip{padding:8px 18px; border-radius:999px; background:var(--field); border:1.5px solid var(--line-soft);
+    color:var(--text-dim); font-size:13px; font-weight:600; cursor:pointer; user-select:none; transition:all .15s;}
+  .filter-chip:hover{border-color:var(--accent);}
+  .filter-chip.sel{background:var(--accent); border-color:var(--accent); color:white;}
   .menu-card .mi{font-size:24px;}
   .menu-card .mt{font-size:15px; font-weight:700; margin-bottom:2px;}
   .menu-card .ms{font-size:12px; color:var(--text-mute);}
@@ -259,6 +264,9 @@
   .ex-sec-tag{font-size:11px; font-weight:700; color:var(--accent-text); text-transform:uppercase; letter-spacing:.05em; margin:14px 0 6px;}
   .di-box{background:var(--field); border:1.5px solid var(--purple); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px; font-size:13px; color:var(--text-dim); line-height:1.6;}
   .di-box img{max-width:100%; border-radius:8px; margin-top:8px;}
+  .q-image-wrap{margin:10px 0 14px;}
+  .q-image-wrap img{max-width:100%; max-height:280px; border-radius:8px; display:block;}
+  .opt-image{max-width:180px; max-height:140px; border-radius:6px; display:block; margin-top:6px;}
   .ex-palette-wrap{border-top:1px solid var(--line-soft); padding-top:14px; margin-top:6px;}
   .ex-palette-legend{display:flex; flex-wrap:wrap; gap:10px; font-size:10.5px; color:var(--text-mute); margin-bottom:10px;}
   .ex-palette-legend span{display:inline-flex; align-items:center; gap:4px;}
@@ -401,6 +409,10 @@
         <div class="mi">🔑</div>
         <div><div class="mt">Change password</div><div class="ms">Update your login password</div></div>
       </div>
+      <div class="menu-card" id="menu-profile">
+        <div class="mi">👤</div>
+        <div><div class="mt">My profile</div><div class="ms">Email, class, semester/year, university</div></div>
+      </div>
     </div>
     <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
   </div>
@@ -525,6 +537,39 @@
     <button class="btn btn-primary" id="btn-change-password" style="margin:10px 0 22px;">🔑 Update password</button>
   </div>
 
+  <!-- ============ MY PROFILE ============ -->
+  <div class="view" id="view-profile">
+    <div class="section-title">My profile</div>
+    <div class="section-sub">Email is required — it's used for result/answer-key emails when your admin enables that feature.</div>
+
+    <label class="field-label">Email address (required)</label>
+    <input id="pf-email" type="email" placeholder="you@example.com" autocomplete="email">
+
+    <div class="row2">
+      <div>
+        <label class="field-label">Class</label>
+        <input id="pf-class" type="text" placeholder="e.g. 12th, B.Sc 2nd Year">
+      </div>
+      <div>
+        <label class="field-label">Semester / Year</label>
+        <input id="pf-sem" type="text" placeholder="e.g. Semester 3">
+      </div>
+    </div>
+
+    <label class="field-label">University / College</label>
+    <input id="pf-university" type="text" placeholder="e.g. Delhi University">
+
+    <label class="field-label">Gender</label>
+    <div class="filter-row" id="pf-gender-row">
+      <div class="filter-chip" data-g="Male">Male</div>
+      <div class="filter-chip" data-g="Female">Female</div>
+    </div>
+
+    <div class="error-text" id="pf-error"></div>
+    <div id="pf-success" style="color:var(--ok, #16a34a); font-size:13px; margin-top:4px;"></div>
+    <button class="btn btn-primary" id="btn-save-profile" style="margin:10px 0 22px;">💾 Save profile</button>
+  </div>
+
   <!-- ============ PRACTICE: SETUP ============ -->
   <div class="view" id="view-prac-setup">
     <div class="section-title">Select your practice session</div>
@@ -558,7 +603,9 @@
   <div class="view" id="view-prac-exam">
     <div class="exam-head"><div class="qcount" id="q-count">Question 1/10</div><div class="subjtag" id="q-subjtag">—</div></div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="di-box" id="p-di-box" style="display:none;"></div>
     <div class="qtext" id="q-text"></div>
+    <div class="q-image-wrap" id="q-image-wrap" style="display:none;"><img id="q-image" alt="Question figure"></div>
     <div id="opt-list"></div>
     <div class="feedback-banner" id="feedback-banner"></div>
     <div class="solution-box" id="solution-box"><div class="sl">Solution</div><div class="sm" id="solution-text"></div></div>
@@ -658,6 +705,7 @@
     <div class="ex-sec-tag" id="ex-sec-tag">SECTION: GENERAL</div>
     <div class="di-box" id="ex-di-box" style="display:none;"></div>
     <div class="qtext" id="ex-q-text"></div>
+    <div class="q-image-wrap" id="ex-q-image-wrap" style="display:none;"><img id="ex-q-image" alt="Question figure"></div>
     <div id="ex-opt-list"></div>
 
     <div class="exam-actions">
@@ -735,6 +783,7 @@
 
     <div class="no-print">
       <button class="btn btn-purple" id="ex-btn-review-paper" style="margin:16px 0 10px; display:none;">📋 Review question paper</button>
+      <div id="ex-email-result-wrap" style="margin-bottom:10px; display:none;"></div>
       <button class="btn btn-ghost" id="ex-btn-result-home" style="margin-bottom:22px;">Back to home</button>
     </div>
 
@@ -874,7 +923,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages']);
+const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile']);
 
 function updateTopBack(id){
   const btn = document.getElementById('btn-top-back');
@@ -980,6 +1029,81 @@ document.getElementById('menu-challenge').addEventListener('click', () => {
   showView('view-ch-list');
   loadChallenges();
 });
+
+/* ---------------- MY PROFILE ---------------- */
+let pfGender = '';
+
+document.getElementById('menu-profile').addEventListener('click', async () => {
+  document.getElementById('pf-error').textContent = '';
+  document.getElementById('pf-success').textContent = '';
+  document.getElementById('pf-email').value = '';
+  document.getElementById('pf-class').value = '';
+  document.getElementById('pf-sem').value = '';
+  document.getElementById('pf-university').value = '';
+  pfGender = '';
+  document.querySelectorAll('#pf-gender-row .filter-chip').forEach(c => c.classList.remove('sel'));
+  showView('view-profile');
+  try{
+    const r = await rpc('get_student_profile', { p_mobile: session.mobile, p_password: session.password });
+    if (r && r.ok){
+      document.getElementById('pf-email').value = r.email || '';
+      document.getElementById('pf-class').value = r.class_name || '';
+      document.getElementById('pf-sem').value = r.semester_year || '';
+      document.getElementById('pf-university').value = r.university || '';
+      if (r.gender){
+        pfGender = r.gender;
+        document.querySelectorAll('#pf-gender-row .filter-chip').forEach(c => c.classList.toggle('sel', c.dataset.g === r.gender));
+      }
+    }
+  }catch(err){
+    document.getElementById('pf-error').textContent = 'Could not load profile. Please try again.';
+  }
+});
+
+document.getElementById('pf-gender-row').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#pf-gender-row .filter-chip').forEach(c => c.classList.remove('sel'));
+  chip.classList.add('sel');
+  pfGender = chip.dataset.g;
+});
+
+document.getElementById('btn-save-profile').addEventListener('click', async () => {
+  const errEl = document.getElementById('pf-error');
+  const okEl = document.getElementById('pf-success');
+  errEl.textContent = ''; okEl.textContent = '';
+  const email = document.getElementById('pf-email').value.trim();
+  const className = document.getElementById('pf-class').value.trim();
+  const sem = document.getElementById('pf-sem').value.trim();
+  const university = document.getElementById('pf-university').value.trim();
+
+  if (!email){ errEl.textContent = 'Email address is required.'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'Please enter a valid email address.'; return; }
+
+  const btn = document.getElementById('btn-save-profile');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try{
+    const r = await rpc('update_student_profile', {
+      p_mobile: session.mobile, p_password: session.password,
+      p_email: email, p_class_name: className, p_semester_year: sem,
+      p_university: university, p_gender: pfGender || null
+    });
+    if (r && r.ok){
+      okEl.textContent = 'Profile saved successfully.';
+    } else if (r && r.error === 'email_required'){
+      errEl.textContent = 'Email address is required.';
+    } else if (r && r.error === 'invalid_email'){
+      errEl.textContent = 'Please enter a valid email address.';
+    } else {
+      errEl.textContent = 'Could not save profile. Please try again.';
+    }
+  }catch(err){
+    errEl.textContent = 'Connection error. Please try again.';
+  }finally{
+    btn.disabled = false; btn.textContent = '💾 Save profile';
+  }
+});
+
 document.getElementById('menu-messages').addEventListener('click', () => {
   showView('view-messages');
   setMsgTab('notices');
@@ -1325,6 +1449,29 @@ document.getElementById('in-custom-count').addEventListener('input', (e) => {
 
 document.getElementById('btn-start').addEventListener('click', startPractice);
 
+// Selects up to `count` questions from `pool`, keeping any di_group set together
+// as a whole block (never splitting a group), then shuffles the block order.
+function groupAwareSelectAndShuffle(pool, count){
+  const groups = {};
+  pool.forEach(r => {
+    const key = (r.di_group && String(r.di_group).trim()) ? String(r.di_group).trim() : `__solo_${r.id}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+  const groupKeys = Object.keys(groups).sort(() => Math.random() - 0.5);
+  const selectedGroups = [];
+  let total = 0;
+  for (const key of groupKeys){
+    if (total >= count) break;
+    selectedGroups.push(groups[key]);
+    total += groups[key].length;
+  }
+  selectedGroups.sort(() => Math.random() - 0.5);
+  const result = [];
+  selectedGroups.forEach(g => g.forEach(r => result.push(r)));
+  return result;
+}
+
 async function startPractice(){
   const sub = document.getElementById('sel-subject').value;
   const top = document.getElementById('sel-topic').value;
@@ -1350,16 +1497,23 @@ async function startPractice(){
 
     if (!pool.length){ errEl.textContent = `No questions found for ${sub} → ${top}${lvl !== 'All Levels' ? ' ('+lvl+')' : ''}.`; return; }
 
-    pool = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(selectedCount, pool.length));
+    pool = groupAwareSelectAndShuffle(pool, selectedCount);
 
     pQuestions = pool.map(row => {
       const opts = [row.option1, row.option2, row.option3, row.option4];
-      const correctText = opts[parseInt(row.correct_index, 10)];
+      const optImgs = [row.option_a_image_url || '', row.option_b_image_url || '', row.option_c_image_url || '', row.option_d_image_url || ''];
+      const correctIndex = parseInt(row.correct_index, 10) || 0;
       const shuffled = opts.map((o,i) => ({o,i})).sort(() => Math.random()-0.5);
       const newOpts = shuffled.map(x => x.o);
-      const newAns = newOpts.indexOf(correctText);
+      const newOptImgs = shuffled.map(x => optImgs[x.i]);
+      const newAns = shuffled.findIndex(x => x.i === correctIndex);
       const solution = row.solution || row.explanation || row.solution_text || row.explanation_text || '';
-      return { id: row.id, q: row.question, options: newOpts, ans: newAns, solution: (solution||'').trim() };
+      return {
+        id: row.id, q: row.question, question_image_url: row.question_image_url || '',
+        options: newOpts, option_images: newOptImgs, ans: newAns,
+        solution: (solution||'').trim(),
+        di_content: row.di_content || '', di_group: row.di_group || '', di_image: row.di_image || ''
+      };
     });
 
     pAnswers = pQuestions.map(() => -1);
@@ -1385,13 +1539,32 @@ function renderQuestion(){
   document.getElementById('progress-fill').style.width = `${((pCurIndex+1)/pQuestions.length)*100}%`;
   document.getElementById('q-text').textContent = q.q;
 
+  const pDiBox = document.getElementById('p-di-box');
+  if (q.di_content || q.di_image){
+    pDiBox.style.display = 'block';
+    pDiBox.innerHTML = (q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : '') +
+                        (q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : '');
+  } else {
+    pDiBox.style.display = 'none';
+  }
+
+  const qImgWrap = document.getElementById('q-image-wrap');
+  if (q.question_image_url){
+    document.getElementById('q-image').src = q.question_image_url;
+    qImgWrap.style.display = 'block';
+  } else {
+    qImgWrap.style.display = 'none';
+  }
+
   const optList = document.getElementById('opt-list');
   optList.innerHTML = '';
   const tags = ['A','B','C','D'];
   q.options.forEach((opt, i) => {
     const div = document.createElement('div');
     div.className = 'opt';
-    div.innerHTML = `<div class="tag">${tags[i]}</div><div>${esc(opt)}</div>`;
+    const imgUrl = (q.option_images && q.option_images[i]) || '';
+    const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[i]}">` : '';
+    div.innerHTML = `<div class="tag">${tags[i]}</div><div>${opt ? esc(opt) : ''}${imgHtml}</div>`;
     div.addEventListener('click', () => selectOption(i));
     optList.appendChild(div);
   });
@@ -1451,7 +1624,9 @@ function revealAnswer(silent){
     banner.textContent = 'Correct answer! Well done.';
   } else {
     banner.className = 'feedback-banner bad';
-    banner.textContent = `Incorrect. Correct answer: ${q.options[correct]}`;
+    const tags = ['A','B','C','D'];
+    const correctTxt = q.options[correct] ? q.options[correct] : `Option ${tags[correct]} (see image above)`;
+    banner.textContent = `Incorrect. Correct answer: ${correctTxt}`;
   }
 
   const solBox = document.getElementById('solution-box');
@@ -1554,15 +1729,22 @@ function renderSolutions(){
   const tags = ['A','B','C','D'];
   list.innerHTML = pQuestions.map((q, i) => {
     const userAns = pAnswers[i];
+    const diHtml = (q.di_content || q.di_image) ?
+      `<div class="di-box">${q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : ''}${q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : ''}</div>` : '';
+    const qImgHtml = q.question_image_url ? `<div class="q-image-wrap"><img src="${esc(q.question_image_url)}" alt="Question figure"></div>` : '';
     const optsHtml = q.options.map((opt, oi) => {
       let cls = '';
       if (oi === q.ans) cls = 'correct';
       else if (oi === userAns && userAns !== q.ans) cls = 'wrong';
-      return `<div class="rev-opt ${cls}">${tags[oi]}. ${esc(opt)}</div>`;
+      const imgUrl = (q.option_images && q.option_images[oi]) || '';
+      const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[oi]}">` : '';
+      return `<div class="rev-opt ${cls}">${tags[oi]}. ${esc(opt)}${imgHtml}</div>`;
     }).join('');
     const statusLbl = pStatus[i] === true ? 'Correct' : pStatus[i] === false ? 'Incorrect' : 'Skipped';
     return `<div class="rev-card">
       <div class="rev-q">${i+1}. ${esc(q.q)} <span style="font-size:11px; color:var(--text-mute);">(${statusLbl} · Q.ID: ${q.id})</span></div>
+      ${diHtml}
+      ${qImgHtml}
       ${optsHtml}
       ${q.solution ? `<div class="solution-box show" style="margin-top:8px;"><div class="sl">Solution</div><div class="sm">${esc(q.solution)}</div></div>` : ''}
     </div>`;
@@ -2039,13 +2221,23 @@ function renderExamQuestion(){
     diBox.style.display = 'none';
   }
 
+  const exQImgWrap = document.getElementById('ex-q-image-wrap');
+  if (q.question_image_url){
+    document.getElementById('ex-q-image').src = q.question_image_url;
+    exQImgWrap.style.display = 'block';
+  } else {
+    exQImgWrap.style.display = 'none';
+  }
+
   const optList = document.getElementById('ex-opt-list');
   optList.innerHTML = '';
   const tags = ['A','B','C','D'];
   q.options.forEach((opt, i) => {
     const div = document.createElement('div');
     div.className = 'opt' + (exAnswers[exCurIndex] === i ? ' selected' : '');
-    div.innerHTML = `<div class="tag">${tags[i]}</div><div>${esc(opt)}</div>`;
+    const imgUrl = (q.option_images && q.option_images[i]) || '';
+    const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[i]}">` : '';
+    div.innerHTML = `<div class="tag">${tags[i]}</div><div>${opt ? esc(opt) : ''}${imgHtml}</div>`;
     div.addEventListener('click', () => {
       exAnswers[exCurIndex] = i;
       document.querySelectorAll('#ex-opt-list .opt').forEach((el, idx) => el.classList.toggle('selected', idx === i));
@@ -2143,6 +2335,23 @@ function showExamResult(r){
   document.getElementById('ex-res-immediate').style.display = r.immediate ? 'block' : 'none';
   document.getElementById('ex-btn-review-paper').style.display = (r.immediate && r.review) ? 'flex' : 'none';
 
+  const emailWrap = document.getElementById('ex-email-result-wrap');
+  if (r.email_result_enabled){
+    emailWrap.style.display = 'block';
+    emailWrap.innerHTML = `
+      <button class="btn btn-primary" id="ex-btn-email-result" style="width:100%;">
+        📧 Email me my result
+      </button>
+      <div id="ex-email-result-msg" style="font-size:12px; text-align:center; margin-top:6px;"></div>`;
+    document.getElementById('ex-btn-email-result').addEventListener('click', sendResultEmail);
+  } else {
+    emailWrap.style.display = 'block';
+    emailWrap.innerHTML = `
+      <div style="font-size:12px; color:var(--text-mute); text-align:center; padding:8px;">
+        Emailing your result isn't enabled by your admin right now.
+      </div>`;
+  }
+
   if (r.immediate){
     document.getElementById('ex-i-name').textContent = session.name;
     document.getElementById('ex-i-mobile').textContent = session.mobile;
@@ -2183,6 +2392,48 @@ function showExamResult(r){
   }
 }
 
+async function sendResultEmail(){
+  const btn = document.getElementById('ex-btn-email-result');
+  const msgEl = document.getElementById('ex-email-result-msg');
+  if (!btn) return;
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Sending...';
+  msgEl.textContent = '';
+  msgEl.style.color = 'var(--text-mute)';
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/smooth-endpoint`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ mobile: session.mobile, password: session.password })
+    });
+    const data = await res.json();
+
+    if (data.ok){
+      msgEl.style.color = '#16a085';
+      msgEl.textContent = 'Result emailed successfully. Please check your inbox (and spam folder).';
+      btn.textContent = '📧 Sent!';
+    } else if (data.error === 'no_email_on_file'){
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Please add your email in My Profile first, then try again.';
+      btn.disabled = false; btn.textContent = originalText;
+    } else if (data.error === 'feature_disabled'){
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = "This feature isn't enabled by your admin right now.";
+      btn.disabled = false; btn.textContent = originalText;
+    } else {
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Could not send email. Please try again later.';
+      btn.disabled = false; btn.textContent = originalText;
+    }
+  }catch(err){
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = 'Connection error. Please try again.';
+    btn.disabled = false; btn.textContent = originalText;
+  }
+}
+
 document.getElementById('ex-btn-review-paper').addEventListener('click', renderExamReviewPanel);
 document.getElementById('ex-ab-back-result').addEventListener('click', () => showView('view-exam-result'));
 document.getElementById('ex-btn-result-home').addEventListener('click', () => showView('view-home'));
@@ -2205,12 +2456,16 @@ function renderExamReviewPanel(){
     const diHtml = (q.di_content || q.di_image) ?
       `<div class="di-box">${q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : ''}${q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : ''}</div>` : '';
 
+    const qImgHtml = q.question_image_url ? `<div class="q-image-wrap"><img src="${esc(q.question_image_url)}" alt="Question figure"></div>` : '';
+
     const optsHtml = (q.options || []).map((opt, oi) => {
       let cls = '';
       if (oi === q.correct_index) cls = 'correct';
       else if (oi === q.selected_index && oi !== q.correct_index) cls = 'wrong';
       const prefix = oi === q.correct_index ? '✔ CORRECT ANSWER: ' : (oi === q.selected_index ? '✘ YOUR CHOICE: ' : '');
-      return `<div class="rev-opt ${cls}">${tags[oi]}. ${prefix}${esc(opt)}</div>`;
+      const imgUrl = (q.option_images && q.option_images[oi]) || '';
+      const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[oi]}">` : '';
+      return `<div class="rev-opt ${cls}">${tags[oi]}. ${prefix}${esc(opt)}${imgHtml}</div>`;
     }).join('');
 
     return `<div class="rev-card">
@@ -2220,6 +2475,7 @@ function renderExamReviewPanel(){
       </div>
       ${diHtml}
       <div class="rev-q">${esc(q.q)}</div>
+      ${qImgHtml}
       ${optsHtml}
     </div>`;
   }).join('');
