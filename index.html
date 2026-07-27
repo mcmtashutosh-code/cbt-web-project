@@ -376,14 +376,88 @@
       </div>
       <div class="error-text" id="login-error"></div>
       <button class="btn btn-primary" id="btn-login" style="margin-top:6px;">Sign in</button>
+      <div style="text-align:center; margin-top:14px; font-size:13px; color:var(--text-dim);">
+        New here? <a href="#" id="link-go-register" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Register here</a>
+      </div>
     </div>
     <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
   </div>
 
+  <!-- ============ REGISTER ============ -->
+  <div class="view" id="view-register" style="padding:0;">
+    <div class="login-card">
+      <div class="login-head">
+        <h1>Create your account</h1>
+        <p>Fill in your details to register for the exam portal.</p>
+      </div>
+
+      <label class="field-label">Mobile number (required)</label>
+      <input id="reg-mobile" type="tel" inputmode="numeric" placeholder="10-digit mobile number" autocomplete="username">
+
+      <label class="field-label">Full name (required)</label>
+      <input id="reg-name" type="text" placeholder="Your full name" autocomplete="name">
+
+      <label class="field-label">Password (required)</label>
+      <div class="pw-row">
+        <input id="reg-pass" type="password" placeholder="Create a password" autocomplete="new-password">
+        <button type="button" class="pw-toggle" id="reg-pass-toggle">SHOW</button>
+      </div>
+
+      <label class="field-label">Confirm password (required)</label>
+      <div class="pw-row">
+        <input id="reg-pass-confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password">
+        <button type="button" class="pw-toggle" id="reg-pass-confirm-toggle">SHOW</button>
+      </div>
+
+      <label class="field-label">Email address (required)</label>
+      <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email">
+
+      <div class="row2">
+        <div>
+          <label class="field-label">Class</label>
+          <input id="reg-class" type="text" placeholder="e.g. 12th, B.Sc 2nd Year">
+        </div>
+        <div>
+          <label class="field-label">Semester / Year</label>
+          <input id="reg-sem" type="text" placeholder="e.g. Semester 3">
+        </div>
+      </div>
+
+      <label class="field-label">University / College</label>
+      <input id="reg-university" type="text" placeholder="e.g. Delhi University">
+
+      <label class="field-label">Gender</label>
+      <div class="filter-row" id="reg-gender-row">
+        <div class="filter-chip" data-g="Male">Male</div>
+        <div class="filter-chip" data-g="Female">Female</div>
+      </div>
+
+      <div class="error-text" id="reg-error"></div>
+      <button class="btn btn-primary" id="btn-register" style="margin-top:10px;">Create account</button>
+      <div style="text-align:center; margin-top:14px; font-size:13px; color:var(--text-dim);">
+        Already registered? <a href="#" id="link-go-login" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Sign in</a>
+      </div>
+    </div>
+    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+  </div>
+
+  <!-- ============ PENDING APPROVAL ============ -->
+  <div class="view" id="view-pending-approval" style="padding:0;">
+    <div class="login-card" style="text-align:center;">
+      <div style="font-size:44px; margin:6px 0 14px;">⏳</div>
+      <h1 style="margin-bottom:8px;">Account pending approval</h1>
+      <p style="line-height:1.6;">Your registration was successful, but your account is <b>waiting for admin approval</b>.
+      You'll be able to sign in and access the portal once your administrator approves your account.</p>
+      <p style="margin-top:14px; font-size:13px; color:var(--text-mute);">Please check back later, or contact your administrator for updates.</p>
+      <button class="btn btn-ghost" id="btn-pending-back" style="margin-top:18px;">← Back to sign in</button>
+    </div>
+    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+  </div>
   <!-- ============ HOME MENU ============ -->
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
+    <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:16px;">📤 Share this app</button>
     <div class="menu-grid">
       <div class="menu-card" id="menu-live-exam">
         <div class="mi">📝</div>
@@ -903,7 +977,7 @@ function showView(id){
   document.getElementById('app-wrap').classList.toggle('exam-wide', isExamAny);
 
   document.getElementById('header-actions').style.display =
-    (id === 'view-login' || isExamTaking || isExamResultLike) ? 'none' : 'flex';
+    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike) ? 'none' : 'flex';
   document.getElementById('btn-open-lb').style.display = (id === 'view-ch-list') ? 'inline-block' : 'none';
   document.getElementById('ex-timer-bar').style.display = isExamTaking ? 'flex' : 'none';
 
@@ -924,6 +998,77 @@ function showView(id){
 }
 
 const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile']);
+
+/* ---------------- REGISTER ---------------- */
+document.getElementById('link-go-register').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('reg-error').textContent = '';
+  showView('view-register');
+});
+document.getElementById('link-go-login').addEventListener('click', (e) => {
+  e.preventDefault();
+  showView('view-login');
+});
+document.getElementById('btn-pending-back').addEventListener('click', () => {
+  showView('view-login');
+});
+
+let regGender = '';
+document.getElementById('reg-gender-row').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#reg-gender-row .filter-chip').forEach(c => c.classList.remove('sel'));
+  chip.classList.add('sel');
+  regGender = chip.dataset.g;
+});
+
+document.getElementById('btn-register').addEventListener('click', async () => {
+  const errEl = document.getElementById('reg-error');
+  errEl.textContent = '';
+
+  const mobile = document.getElementById('reg-mobile').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const passConfirm = document.getElementById('reg-pass-confirm').value;
+  const email = document.getElementById('reg-email').value.trim();
+  const className = document.getElementById('reg-class').value.trim();
+  const sem = document.getElementById('reg-sem').value.trim();
+  const university = document.getElementById('reg-university').value.trim();
+
+  if (!/^\d{10}$/.test(mobile)){ errEl.textContent = 'Please enter a valid 10-digit mobile number.'; return; }
+  if (!name){ errEl.textContent = 'Please enter your full name.'; return; }
+  if (pass.length < 6 || !/[a-zA-Z]/.test(pass) || !/[0-9]/.test(pass)){
+    errEl.textContent = 'Password must be at least 6 characters and contain both letters and numbers.'; return;
+  }
+  if (pass !== passConfirm){ errEl.textContent = 'Passwords do not match.'; return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'Please enter a valid email address.'; return; }
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try{
+    const r = await rpc('register_student', {
+      p_mobile: mobile, p_password: pass, p_name: name, p_email: email,
+      p_class_name: className, p_semester_year: sem, p_university: university,
+      p_gender: regGender || null
+    });
+    if (r && r.ok){
+      ['reg-mobile','reg-name','reg-pass','reg-pass-confirm','reg-email','reg-class','reg-sem','reg-university'].forEach(id => document.getElementById(id).value = '');
+      document.querySelectorAll('#reg-gender-row .filter-chip').forEach(c => c.classList.remove('sel'));
+      regGender = '';
+      showView('view-pending-approval');
+    } else if (r && r.error === 'mobile_taken'){
+      errEl.textContent = 'This mobile number is already registered here. Please sign in instead.';
+    } else if (r && r.error === 'email_taken'){
+      errEl.textContent = 'This email address is already registered with another account.';
+    } else {
+      errEl.textContent = 'Could not create account. Please try again.';
+    }
+  }catch(err){
+    errEl.textContent = err.message || 'Connection error. Please try again.';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Create account';
+  }
+});
 
 function updateTopBack(id){
   const btn = document.getElementById('btn-top-back');
@@ -991,6 +1136,11 @@ async function doLogin(){
       errEl.textContent = 'Invalid mobile number or password.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
+    if (rows[0].is_approved === false){
+      showView('view-pending-approval');
+      btn.disabled = false; btn.textContent = 'Sign in';
+      return;
+    }
     session = { mobile: rows[0].mobile, password, name: rows[0].name };
     document.getElementById('who-mini').style.display = 'block';
     document.getElementById('who-mini-name').textContent = session.name;
@@ -1024,6 +1174,33 @@ document.getElementById('menu-password').addEventListener('click', () => {
   document.getElementById('pw-confirm').value = '';
   document.getElementById('pw-error').textContent = '';
   showView('view-password');
+});
+document.getElementById('btn-share-app').addEventListener('click', async () => {
+  const shareUrl = window.location.href.split('#')[0].split('?')[0];
+  if (!/^https?:\/\//i.test(shareUrl)){
+    toast('Sharing only works on the live website, not a locally opened file.', 'err');
+    return;
+  }
+  const shareData = {
+    title: 'Vidyapath — CBT Examination Portal',
+    text: 'Practice, take exams, and track your progress on Vidyapath. Join here:',
+    url: shareUrl
+  };
+  if (navigator.share){
+    try{
+      await navigator.share(shareData);
+      rpc('log_app_share', { p_mobile: session.mobile, p_password: session.password }).catch(()=>{});
+    }
+    catch(err){ /* user cancelled share sheet, ignore */ }
+  } else {
+    try{
+      await navigator.clipboard.writeText(shareUrl);
+      toast('Link copied! Share it with your friends.', 'ok');
+      rpc('log_app_share', { p_mobile: session.mobile, p_password: session.password }).catch(()=>{});
+    }catch(err){
+      toast('Unable to copy link. Long-press the address bar to copy it.', 'err');
+    }
+  }
 });
 document.getElementById('menu-challenge').addEventListener('click', () => {
   showView('view-ch-list');
@@ -2519,6 +2696,8 @@ function wirePwToggle(inputId, btnId){
 wirePwToggle('pw-old', 'pw-old-toggle');
 wirePwToggle('pw-new', 'pw-new-toggle');
 wirePwToggle('pw-confirm', 'pw-confirm-toggle');
+wirePwToggle('reg-pass', 'reg-pass-toggle');
+wirePwToggle('reg-pass-confirm', 'reg-pass-confirm-toggle');
 
 document.getElementById('btn-change-password').addEventListener('click', async () => {
   const oldPass = document.getElementById('pw-old').value;
