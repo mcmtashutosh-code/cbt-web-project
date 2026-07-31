@@ -327,6 +327,18 @@
   .footer .lock{color:var(--accent-text);}
   #toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--card); border:1px solid var(--line); color:var(--text); padding:12px 18px; border-radius:10px; font-size:13.5px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; max-width:88%; text-align:center; z-index:50;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  @keyframes celebrateFall{
+    0%{ transform:translateY(0) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(115vh) rotate(360deg); opacity:0.9; }
+  }
+  @keyframes achieveSlide{
+    0%{ transform:translateY(-100%); }
+    12%{ transform:translateY(0); }
+    85%{ transform:translateY(0); }
+    100%{ transform:translateY(-100%); }
+  }
+  #achieve-banner{ transform:translateY(-100%); }
+  #achieve-banner.playing{ animation: achieveSlide 5s ease forwards; }
 </style>
 </head>
 <body>
@@ -884,6 +896,22 @@
 
 <div id="toast"></div>
 
+<!-- Full-screen milestone celebration (for the achieving student) -->
+<div id="celebrate-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,15,25,0.92); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:20px;">
+  <div id="celebrate-emojis" style="position:absolute; inset:0; overflow:hidden; pointer-events:none;"></div>
+  <div style="position:relative; z-index:2;">
+    <div style="font-size:64px; line-height:1;">🎉🌸🎊</div>
+    <div style="font-size:24px; font-weight:800; color:#fff; margin:16px 0 6px;">Congratulations!</div>
+    <div id="celebrate-msg" style="font-size:16px; color:#bcd6ea; max-width:320px; margin:0 auto 22px;"></div>
+    <button class="btn btn-primary" id="btn-celebrate-close" style="padding:12px 28px; width:auto;">Awesome, thanks! 🙌</button>
+  </div>
+</div>
+
+<!-- One-time sliding achievement banner (for other students) -->
+<div id="achieve-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9998; background:linear-gradient(90deg,#8e44ad,#2980b9); color:#fff; padding:14px 20px; text-align:center; font-size:13.5px; font-weight:600; box-shadow:0 4px 14px rgba(0,0,0,0.3);">
+  <span id="achieve-banner-text"></span>
+</div>
+
 <div id="ex-fs-warning">
   <div class="fsw-box">
     <div class="fsw-icon">⚠</div>
@@ -1147,6 +1175,7 @@ async function doLogin(){
     showView('view-home');
     refreshInboxBadge();
     startInboxPolling();
+    checkMilestonesOnLogin();
   }catch(err){
     errEl.textContent = 'Connection error. Please check your internet and try again.';
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -1419,6 +1448,87 @@ function startInboxPolling(){
 function stopInboxPolling(){
   if (inboxPollIntervalId) clearInterval(inboxPollIntervalId);
   inboxPollIntervalId = null;
+}
+
+/* ============================================================
+   MILESTONE CELEBRATIONS
+   ============================================================ */
+async function checkMilestonesOnLogin(){
+  if (!session) return;
+  try{ await rpc('check_and_record_milestones', { p_mobile: session.mobile, p_password: session.password }); }
+  catch(err){ /* ignore */ }
+
+  try{
+    const rows = await rpc('get_pending_celebration', { p_mobile: session.mobile, p_password: session.password });
+    if (rows && rows[0]){
+      showCelebrationOverlay(rows[0].milestone);
+      return; // don't stack the banner under a full-screen overlay
+    }
+  }catch(err){ /* ignore */ }
+
+  try{
+    const rows = await rpc('get_unseen_achievements', { p_mobile: session.mobile, p_password: session.password });
+    if (rows && rows.length){
+      showAchievementBanner(rows.map(r => r.message));
+    }
+  }catch(err){ /* ignore */ }
+}
+
+function showCelebrationOverlay(milestone){
+  const overlay = document.getElementById('celebrate-overlay');
+  const msgEl = document.getElementById('celebrate-msg');
+  const emojiLayer = document.getElementById('celebrate-emojis');
+  msgEl.textContent = `You've crossed ${milestone} points on Today's Challenge. Keep it up! 🚀`;
+
+  emojiLayer.innerHTML = '';
+  const bits = ['🎉','🌸','🎊','⭐','🏆','🌟'];
+  for (let i = 0; i < 26; i++){
+    const el = document.createElement('div');
+    el.textContent = bits[i % bits.length];
+    const left = Math.random() * 100;
+    const delay = Math.random() * 1.2;
+    const dur = 2.6 + Math.random() * 1.6;
+    const size = 18 + Math.random() * 18;
+    el.style.cssText = `position:absolute; left:${left}%; top:-40px; font-size:${size}px;
+      animation: celebrateFall ${dur}s ${delay}s linear infinite;`;
+    emojiLayer.appendChild(el);
+  }
+
+  overlay.style.display = 'flex';
+  const btn = document.getElementById('btn-celebrate-close');
+  const close = () => {
+    overlay.style.display = 'none';
+    rpc('mark_celebration_shown', { p_mobile: session.mobile, p_password: session.password, p_milestone: milestone }).catch(()=>{});
+    btn.removeEventListener('click', close);
+  };
+  btn.addEventListener('click', close);
+}
+
+let achieveBannerQueue = [];
+function showAchievementBanner(messages){
+  achieveBannerQueue = achieveBannerQueue.concat(messages);
+  if (achieveBannerQueue.length === messages.length) playNextAchieveBanner();
+}
+function playNextAchieveBanner(){
+  if (!achieveBannerQueue.length) return;
+  const msg = achieveBannerQueue.shift();
+  const banner = document.getElementById('achieve-banner');
+  document.getElementById('achieve-banner-text').textContent = `🎉 ${msg}`;
+
+  banner.classList.remove('playing');
+  banner.style.display = 'block';
+  void banner.offsetWidth; // force reflow so the animation restarts cleanly each time
+  banner.classList.add('playing');
+
+  const onEnd = () => {
+    clearTimeout(fallbackTimer);
+    banner.removeEventListener('animationend', onEnd);
+    banner.classList.remove('playing');
+    banner.style.display = 'none';
+    playNextAchieveBanner();
+  };
+  banner.addEventListener('animationend', onEnd);
+  const fallbackTimer = setTimeout(onEnd, 5500);
 }
 
 /* ============================================================
@@ -2152,6 +2262,7 @@ function buildChallengeCard(ch){
       ch.correct_index = r.correct_index;
       card.replaceWith(buildChallengeCard(ch));
       toast(r.is_correct ? `Correct! +${r.points_earned} points.` : 'Answer submitted.', r.is_correct ? 'ok' : '');
+      rpc('check_and_record_milestones', { p_mobile: session.mobile, p_password: session.password }).catch(()=>{});
     }catch(err){
       toast(`Submit failed: ${err.message || 'unknown error'}`, 'err');
       submitBtn.disabled = false; submitBtn.textContent = '✓  Submit answer';
