@@ -473,7 +473,7 @@
     <div class="menu-grid">
       <div class="menu-card" id="menu-live-exam">
         <div class="mi">📝</div>
-        <div><div class="mt">Live exam</div><div class="ms">Sit your scheduled examination</div></div>
+        <div><div class="mt">Live exam</div><div class="ms" id="live-exam-subtitle">Sit your scheduled examination</div></div>
       </div>
       <div class="menu-card" id="menu-practice">
         <div class="mi">📚</div>
@@ -1129,6 +1129,8 @@ function doLogout(){
   clearInterval(exTickIntervalId);
   clearInterval(exAutosaveIntervalId);
   stopInboxPolling();
+  if (examSchedulePollIntervalId){ clearInterval(examSchedulePollIntervalId); examSchedulePollIntervalId = null; }
+  if (examCountdownIntervalId){ clearInterval(examCountdownIntervalId); examCountdownIntervalId = null; }
   document.getElementById('notif-bell-badge').style.display = 'none';
   session = null;
   document.getElementById('who-mini').style.display = 'none';
@@ -1176,6 +1178,9 @@ async function doLogin(){
     refreshInboxBadge();
     startInboxPolling();
     checkMilestonesOnLogin();
+    refreshExamScheduleStatus();
+    if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
+    examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
   }catch(err){
     errEl.textContent = 'Connection error. Please check your internet and try again.';
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -2335,11 +2340,70 @@ const EX_ERROR_MESSAGES = {
   invalid_credentials: 'Invalid mobile number or password.',
   not_configured: 'The examination has not been configured yet. Please contact your administrator.',
   window_inactive: 'No active examination is currently scheduled. Please contact your administrator.',
+  not_yet_started: 'The examination has not started yet. Please wait for the scheduled time.',
   already_submitted: 'Your examination has already been submitted. Re-login is not permitted.',
   concurrent_session: 'An active examination session already exists for these credentials on another device. Please contact your administrator or invigilator.',
   no_questions: 'The question paper is empty. Please contact your administrator.',
   no_active_session: 'No active exam session found. Please log in again.'
 };
+
+/* ---------------- LIVE EXAM SCHEDULE COUNTDOWN ---------------- */
+let examScheduleInfo = null;      // { isOpen, scheduledStartAt, serverOffsetMs }
+let examCountdownIntervalId = null;
+let examSchedulePollIntervalId = null;
+
+async function refreshExamScheduleStatus(){
+  try{
+    const rows = await rpc('get_exam_schedule_status', {});
+    const r = rows && rows[0];
+    if (!r) return;
+    const serverOffsetMs = new Date(r.server_now).getTime() - Date.now();
+    examScheduleInfo = {
+      isOpen: !!r.is_open,
+      scheduledStartAt: r.scheduled_start_at ? new Date(r.scheduled_start_at).getTime() : null,
+      serverOffsetMs
+    };
+    updateLiveExamSubtitle();
+  }catch(err){ /* ignore, card just keeps its default text */ }
+}
+
+function updateLiveExamSubtitle(){
+  const el = document.getElementById('live-exam-subtitle');
+  if (!el || !examScheduleInfo) return;
+  if (examScheduleInfo.isOpen){
+    el.textContent = 'Sit your scheduled examination';
+    el.style.color = '';
+    if (examCountdownIntervalId){ clearInterval(examCountdownIntervalId); examCountdownIntervalId = null; }
+    return;
+  }
+  if (!examScheduleInfo.scheduledStartAt){
+    el.textContent = 'Not currently available';
+    el.style.color = 'var(--text-mute)';
+    return;
+  }
+  const tick = () => {
+    const nowServer = Date.now() + examScheduleInfo.serverOffsetMs;
+    const diff = examScheduleInfo.scheduledStartAt - nowServer;
+    if (diff <= 0){
+      el.textContent = 'Starting now — tap to begin';
+      el.style.color = 'var(--accent-text)';
+      clearInterval(examCountdownIntervalId);
+      examCountdownIntervalId = null;
+      refreshExamScheduleStatus();
+      return;
+    }
+    const totalSec = Math.floor(diff / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = n => String(n).padStart(2,'0');
+    el.textContent = `⏳ Opens in ${h > 0 ? pad(h)+':' : ''}${pad(m)}:${pad(s)}`;
+    el.style.color = 'var(--warn)';
+  };
+  if (examCountdownIntervalId) clearInterval(examCountdownIntervalId);
+  tick();
+  examCountdownIntervalId = setInterval(tick, 1000);
+}
 
 function buildExamWatermark(text){
   const wm = document.getElementById('ex-watermark');
@@ -2357,6 +2421,13 @@ function buildExamWatermark(text){
 
 async function startExamFlow(){
   if (!session) return;
+  if (examScheduleInfo && !examScheduleInfo.isOpen && examScheduleInfo.scheduledStartAt){
+    const nowServer = Date.now() + examScheduleInfo.serverOffsetMs;
+    if (examScheduleInfo.scheduledStartAt - nowServer > 1500){
+      toast('The exam has not started yet. Please wait for the scheduled time.', 'err');
+      return;
+    }
+  }
   toast('Loading examination...', '');
   try{
     const r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
