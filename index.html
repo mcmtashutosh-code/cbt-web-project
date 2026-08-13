@@ -1798,7 +1798,11 @@ document.getElementById('sel-subject').addEventListener('change', (e) => {
   const sub = e.target.value;
   if (!sub){ topSel.innerHTML = '<option value="">-- Select subject first --</option>'; topSel.disabled = true; updateAvailNote(); return; }
   const topics = Object.keys(subjectsData[sub] || {});
-  topSel.innerHTML = '<option value="">-- Select --</option>' + topics.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  topSel.innerHTML = '<option value="">-- Select --</option>' + topics.map(t => {
+    const levels = subjectsData[sub][t] || {};
+    const cnt = Object.values(levels).reduce((a,b) => a+b, 0);
+    return `<option value="${esc(t)}">${esc(t)} (${cnt})</option>`;
+  }).join('');
   topSel.disabled = false;
   updateAvailNote();
 });
@@ -1810,7 +1814,16 @@ function updateAvailNote(){
   const top = document.getElementById('sel-topic').value;
   const lvl = document.getElementById('sel-level').value;
   const note = document.getElementById('avail-note');
-  if (!sub || !top){ note.textContent = ''; return; }
+  if (!sub){ note.textContent = ''; return; }
+  if (!top){
+    const topics = subjectsData[sub] || {};
+    let subjectTotal = 0;
+    Object.values(topics).forEach(levels => {
+      subjectTotal += Object.values(levels).reduce((a,b) => a+b, 0);
+    });
+    note.textContent = `${esc(sub)}: ${subjectTotal} question${subjectTotal === 1 ? '' : 's'} available across all topics`;
+    return;
+  }
   const levels = subjectsData[sub] && subjectsData[sub][top] ? subjectsData[sub][top] : {};
   let count;
   if (lvl === 'All Levels') count = Object.values(levels).reduce((a,b) => a+b, 0);
