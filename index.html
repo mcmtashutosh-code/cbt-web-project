@@ -479,6 +479,10 @@
         <div class="mi">📚</div>
         <div><div class="mt">Practice portal</div><div class="ms">Practice by subject, topic and difficulty</div></div>
       </div>
+      <div class="menu-card" id="menu-mock-test">
+        <div class="mi">🧪</div>
+        <div><div class="mt">Mock test</div><div class="ms">Build your own timed test from practice questions</div></div>
+      </div>
       <div class="menu-card" id="menu-challenge">
         <div class="mi">🏆</div>
         <div><div class="mt">Today's challenge</div><div class="ms">Answer fast, climb the leaderboard</div></div>
@@ -743,6 +747,98 @@
     <button class="btn btn-ghost" id="btn-progress-back" style="margin:8px 0 22px;">Back</button>
   </div>
 
+  <!-- ============ MOCK TEST: SETUP ============ -->
+  <div class="view" id="view-mock-setup">
+    <div class="section-title">Build your mock test</div>
+    <div class="section-sub">Pick topics and how many questions from each, then set your timing.</div>
+
+    <div class="pcard">
+      <div class="lbl">Topics &amp; question counts</div>
+      <div id="mock-topic-list" style="margin-top:8px;"><div class="spin"></div></div>
+      <div class="avail-note" id="mock-total-note" style="margin-top:6px;">Total selected: 0</div>
+    </div>
+
+    <div class="pcard">
+      <div class="lbl">Timing mode</div>
+      <div class="row2" style="margin-top:6px;">
+        <div class="count-chip sel" id="mock-mode-overall" style="padding:10px; text-align:center;">Overall timer</div>
+        <div class="count-chip" id="mock-mode-perq" style="padding:10px; text-align:center;">Per-question timer</div>
+      </div>
+      <div id="mock-overall-time-wrap" style="margin-top:10px;">
+        <div class="lbl">Total time (minutes)</div>
+        <input id="mock-overall-minutes" type="number" min="1" value="30">
+      </div>
+      <div id="mock-perq-time-wrap" style="margin-top:10px; display:none;">
+        <div class="lbl">Seconds per question</div>
+        <input id="mock-perq-seconds" type="number" min="5" value="60">
+      </div>
+    </div>
+
+    <div class="pcard">
+      <div class="lbl">Negative marking</div>
+      <div class="row2" style="margin-top:6px;">
+        <div class="count-chip" id="mock-neg-off">Off</div>
+        <div class="count-chip sel" id="mock-neg-on">On (-0.25 per wrong)</div>
+      </div>
+    </div>
+
+    <div class="error-text" id="mock-setup-error"></div>
+    <button class="btn btn-primary" id="btn-mock-start" style="margin:8px 0 22px;">Start mock test</button>
+    <button class="btn btn-ghost" id="btn-mock-history-open" style="margin-bottom:22px;">📜 My mock test history</button>
+  </div>
+
+  <!-- ============ MOCK TEST: EXAM ============ -->
+  <div class="view" id="view-mock-exam">
+    <div class="exam-head"><div class="qcount" id="mock-q-count">Question 1/10</div><div class="subjtag" id="mock-timer">—</div></div>
+    <div class="progress-bar"><div class="progress-fill" id="mock-progress-fill" style="width:0%"></div></div>
+    <div class="di-box" id="mock-di-box" style="display:none;"></div>
+    <div class="qtext" id="mock-q-text"></div>
+    <div class="q-image-wrap" id="mock-q-image-wrap" style="display:none;"><img id="mock-q-image" alt="Question figure"></div>
+    <div id="mock-opt-list"></div>
+    <div class="exam-actions">
+      <button class="btn btn-ghost btn-sm" id="btn-mock-prev">Previous</button>
+      <button class="btn btn-ghost btn-sm" id="btn-mock-skip">Skip</button>
+      <button class="btn btn-primary btn-sm" id="btn-mock-next">Next</button>
+    </div>
+    <div class="palette" id="mock-palette"></div>
+    <div class="end-row"><button class="btn btn-danger" id="btn-mock-end">Submit mock test</button></div>
+  </div>
+
+  <!-- ============ MOCK TEST: RESULT ============ -->
+  <div class="view" id="view-mock-result">
+    <div class="result-card">
+      <div style="font-size:16px; font-weight:700; color:var(--accent-text);">Mock test complete</div>
+      <div style="font-size:11.5px; color:var(--text-mute); margin-top:2px;" id="mock-res-tag">—</div>
+      <div class="score-big" id="mock-res-score">0/0</div>
+      <div class="score-sub" id="mock-res-pct">0% correct</div>
+      <div class="stat-grid">
+        <div class="stat-cell"><div class="si">✔</div><div class="sv" id="mock-res-correct" style="color:#27ae60;">0</div><div class="sk">Correct</div></div>
+        <div class="stat-cell"><div class="si">✘</div><div class="sv" id="mock-res-wrong" style="color:#e74c3c;">0</div><div class="sk">Wrong</div></div>
+        <div class="stat-cell"><div class="si">⏩</div><div class="sv" id="mock-res-skipped" style="color:#e67e22;">0</div><div class="sk">Not attempted</div></div>
+        <div class="stat-cell"><div class="si">⏱</div><div class="sv" id="mock-res-time" style="color:#2980b9;">0m</div><div class="sk">Time taken</div></div>
+      </div>
+    </div>
+    <button class="btn btn-purple" id="btn-mock-view-review" style="margin-bottom:10px;">Review answers</button>
+    <button class="btn btn-primary" id="btn-mock-again" style="margin-bottom:10px;">Build another mock test</button>
+    <button class="btn btn-ghost" id="btn-mock-result-home" style="margin-bottom:22px;">Back to home</button>
+  </div>
+
+  <!-- ============ MOCK TEST: REVIEW ============ -->
+  <div class="view" id="view-mock-review">
+    <div class="section-title">Mock test review</div>
+    <div class="section-sub">Your answers compared with the correct ones</div>
+    <div id="mock-review-list"></div>
+    <button class="btn btn-ghost" id="btn-mock-review-back" style="margin:8px 0 22px;">Back</button>
+  </div>
+
+  <!-- ============ MOCK TEST: HISTORY ============ -->
+  <div class="view" id="view-mock-history">
+    <div class="section-title">Mock test history</div>
+    <div class="section-sub">Your past mock tests</div>
+    <div id="mock-history-list"><div class="spin"></div></div>
+    <button class="btn btn-ghost" id="btn-mock-history-back" style="margin:8px 0 22px;">Back</button>
+  </div>
+
   <!-- ============ CHALLENGE: LIST ============ -->
   <div class="view" id="view-ch-list">
     <div class="section-title">Today's challenges</div>
@@ -1005,7 +1101,7 @@ function showView(id){
   document.getElementById('app-wrap').classList.toggle('exam-wide', isExamAny);
 
   document.getElementById('header-actions').style.display =
-    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike) ? 'none' : 'flex';
+    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
   document.getElementById('btn-open-lb').style.display = (id === 'view-ch-list') ? 'inline-block' : 'none';
   document.getElementById('ex-timer-bar').style.display = isExamTaking ? 'flex' : 'none';
 
@@ -1025,7 +1121,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile']);
+const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history']);
 
 /* ---------------- REGISTER ---------------- */
 document.getElementById('link-go-register').addEventListener('click', (e) => {
@@ -2066,6 +2162,385 @@ async function loadPracticeProgress(){
     }).join('');
   }catch(err){
     list.innerHTML = '<div class="empty-state">Unable to load your progress right now.</div>';
+  }
+}
+
+/* ============================================================
+   MOCK TEST MODULE
+   ============================================================ */
+let mockTopicMeta = [];        // [{subject, topic, available}]
+let mockConfig = {};           // {timingMode, overallMinutes, perqSeconds, negativeMarking}
+let mockQuestions = [];
+let mockAnswers = [];
+let mockCurIndex = 0;
+let mockStartTime = null;
+let mockTimerIntervalId = null;
+let mockOverallSecondsLeft = 0;
+let mockPerQSecondsLeft = 0;
+
+document.getElementById('menu-mock-test').addEventListener('click', () => {
+  showView('view-mock-setup');
+  loadMockSetup();
+});
+document.getElementById('btn-mock-history-open').addEventListener('click', loadMockHistory);
+document.getElementById('btn-mock-history-back').addEventListener('click', () => showView('view-mock-setup'));
+
+async function loadMockSetup(){
+  const errEl = document.getElementById('mock-setup-error');
+  errEl.textContent = '';
+  const listEl = document.getElementById('mock-topic-list');
+  listEl.innerHTML = '<div class="spin"></div>';
+  try{
+    const rows = await restGetAll('practice_questions', 'select=*');
+    const norm = (v, d='General') => (v || '').trim() || d;
+    const counts = {};
+    rows.forEach(r => {
+      const sub = norm(r.subject);
+      const top = norm(r.topic);
+      const key = sub + '|||' + top;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    mockTopicMeta = Object.keys(counts).sort().map(key => {
+      const [subject, topic] = key.split('|||');
+      return { subject, topic, available: counts[key] };
+    });
+    if (!mockTopicMeta.length){
+      listEl.innerHTML = '';
+      errEl.textContent = 'No practice questions are currently available. Please contact your administrator.';
+      return;
+    }
+    listEl.innerHTML = mockTopicMeta.map((t, i) => `
+      <div class="pcard" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; margin-bottom:6px;">
+        <div>
+          <div style="font-weight:600; font-size:13px;">${esc(t.subject)} → ${esc(t.topic)}</div>
+          <div class="avail-note" style="margin:0;">Max ${t.available} available</div>
+        </div>
+        <input type="number" min="0" max="${t.available}" value="0" data-i="${i}" class="mock-topic-count" style="width:70px; text-align:center;">
+      </div>`).join('');
+    listEl.querySelectorAll('.mock-topic-count').forEach(inp => {
+      inp.addEventListener('input', updateMockTotal);
+    });
+    updateMockTotal();
+  }catch(err){
+    listEl.innerHTML = '';
+    errEl.textContent = 'Unable to load practice questions. Please try again.';
+  }
+}
+
+function updateMockTotal(){
+  let total = 0;
+  document.querySelectorAll('.mock-topic-count').forEach(inp => {
+    const max = parseInt(inp.max, 10) || 0;
+    let v = parseInt(inp.value, 10) || 0;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    inp.value = v;
+    total += v;
+  });
+  document.getElementById('mock-total-note').textContent = `Total selected: ${total}`;
+}
+
+document.getElementById('mock-mode-overall').addEventListener('click', () => {
+  document.getElementById('mock-mode-overall').classList.add('sel');
+  document.getElementById('mock-mode-perq').classList.remove('sel');
+  document.getElementById('mock-overall-time-wrap').style.display = 'block';
+  document.getElementById('mock-perq-time-wrap').style.display = 'none';
+});
+document.getElementById('mock-mode-perq').addEventListener('click', () => {
+  document.getElementById('mock-mode-perq').classList.add('sel');
+  document.getElementById('mock-mode-overall').classList.remove('sel');
+  document.getElementById('mock-perq-time-wrap').style.display = 'block';
+  document.getElementById('mock-overall-time-wrap').style.display = 'none';
+});
+document.getElementById('mock-neg-on').addEventListener('click', () => {
+  document.getElementById('mock-neg-on').classList.add('sel');
+  document.getElementById('mock-neg-off').classList.remove('sel');
+});
+document.getElementById('mock-neg-off').addEventListener('click', () => {
+  document.getElementById('mock-neg-off').classList.add('sel');
+  document.getElementById('mock-neg-on').classList.remove('sel');
+});
+
+document.getElementById('btn-mock-start').addEventListener('click', async () => {
+  const errEl = document.getElementById('mock-setup-error');
+  errEl.textContent = '';
+
+  const selections = [];
+  document.querySelectorAll('.mock-topic-count').forEach(inp => {
+    const v = parseInt(inp.value, 10) || 0;
+    if (v > 0){
+      const meta = mockTopicMeta[parseInt(inp.dataset.i, 10)];
+      selections.push({ subject: meta.subject, topic: meta.topic, count: v });
+    }
+  });
+  if (!selections.length){ errEl.textContent = 'Please select at least one question from any topic.'; return; }
+
+  const timingMode = document.getElementById('mock-mode-overall').classList.contains('sel') ? 'overall' : 'perq';
+  const overallMinutes = Math.max(1, parseInt(document.getElementById('mock-overall-minutes').value, 10) || 30);
+  const perqSeconds = Math.max(5, parseInt(document.getElementById('mock-perq-seconds').value, 10) || 60);
+  const negativeMarking = document.getElementById('mock-neg-on').classList.contains('sel');
+
+  try{
+    const rows = await restGetAll('practice_questions', 'select=*');
+    const norm = (v, d='General') => (v || '').trim() || d;
+    const topicGroups = selections.map(sel => {
+      const pool = rows.filter(r => norm(r.subject) === sel.subject && norm(r.topic) === sel.topic);
+      return groupAwareSelectAndShuffle(pool, sel.count).map(row => ({ ...row, __subject: sel.subject, __topic: sel.topic }));
+    });
+    topicGroups.sort(() => Math.random() - 0.5);
+    const finalPool = [].concat(...topicGroups);
+
+    mockQuestions = finalPool.map(row => {
+      const opts = [row.option1, row.option2, row.option3, row.option4];
+      const optImgs = [row.option_a_image_url || '', row.option_b_image_url || '', row.option_c_image_url || '', row.option_d_image_url || ''];
+      const correctIndex = parseInt(row.correct_index, 10) || 0;
+      const shuffled = opts.map((o,i) => ({o,i})).sort(() => Math.random()-0.5);
+      const newOpts = shuffled.map(x => x.o);
+      const newOptImgs = shuffled.map(x => optImgs[x.i]);
+      const newAns = shuffled.findIndex(x => x.i === correctIndex);
+      const solution = row.solution || row.explanation || row.solution_text || row.explanation_text || '';
+      return {
+        id: row.id, q: row.question, question_image_url: row.question_image_url || '',
+        options: newOpts, option_images: newOptImgs, ans: newAns,
+        solution: (solution||'').trim(),
+        di_content: row.di_content || '', di_group: row.di_group || '', di_image: row.di_image || '',
+        subject: row.__subject, topic: row.__topic
+      };
+    });
+
+    mockAnswers = mockQuestions.map(() => -1);
+    mockCurIndex = 0;
+    mockConfig = {
+      timingMode, overallMinutes, perqSeconds, negativeMarking,
+      topics: selections
+    };
+    mockStartTime = Date.now();
+    mockOverallSecondsLeft = overallMinutes * 60;
+    mockPerQSecondsLeft = perqSeconds;
+
+    showView('view-mock-exam');
+    renderMockQuestion();
+    startMockTimer();
+  }catch(err){
+    errEl.textContent = 'Unable to start the mock test. Please try again.';
+  }
+});
+
+function startMockTimer(){
+  if (mockTimerIntervalId) clearInterval(mockTimerIntervalId);
+  mockTimerIntervalId = setInterval(() => {
+    if (mockConfig.timingMode === 'overall'){
+      mockOverallSecondsLeft--;
+      updateMockTimerDisplay();
+      if (mockOverallSecondsLeft <= 0){ endMockTest(); }
+    } else {
+      mockPerQSecondsLeft--;
+      updateMockTimerDisplay();
+      if (mockPerQSecondsLeft <= 0){
+        if (mockCurIndex < mockQuestions.length - 1) goToMockQuestion(mockCurIndex + 1);
+        else endMockTest();
+      }
+    }
+  }, 1000);
+}
+
+function updateMockTimerDisplay(){
+  const el = document.getElementById('mock-timer');
+  const secs = mockConfig.timingMode === 'overall' ? mockOverallSecondsLeft : mockPerQSecondsLeft;
+  const m = Math.floor(Math.max(0,secs) / 60);
+  const s = Math.max(0,secs) % 60;
+  el.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.style.color = secs <= 10 ? '#e74c3c' : '';
+}
+
+function renderMockQuestion(){
+  const q = mockQuestions[mockCurIndex];
+  document.getElementById('mock-q-count').textContent = `Question ${mockCurIndex+1}/${mockQuestions.length}`;
+  document.getElementById('mock-progress-fill').style.width = `${((mockCurIndex+1)/mockQuestions.length)*100}%`;
+  document.getElementById('mock-q-text').textContent = q.q;
+
+  const diBox = document.getElementById('mock-di-box');
+  if (q.di_content || q.di_image){
+    diBox.style.display = 'block';
+    diBox.innerHTML = (q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : '') +
+                       (q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : '');
+  } else {
+    diBox.style.display = 'none';
+  }
+
+  const qImgWrap = document.getElementById('mock-q-image-wrap');
+  if (q.question_image_url){
+    document.getElementById('mock-q-image').src = q.question_image_url;
+    qImgWrap.style.display = 'block';
+  } else {
+    qImgWrap.style.display = 'none';
+  }
+
+  const optList = document.getElementById('mock-opt-list');
+  optList.innerHTML = '';
+  const tags = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'opt';
+    if (mockAnswers[mockCurIndex] === i) div.classList.add('selected');
+    const imgUrl = (q.option_images && q.option_images[i]) || '';
+    const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[i]}">` : '';
+    div.innerHTML = `<div class="tag">${tags[i]}</div><div>${opt ? esc(opt) : ''}${imgHtml}</div>`;
+    div.addEventListener('click', () => selectMockOption(i));
+    optList.appendChild(div);
+  });
+
+  document.getElementById('btn-mock-next').disabled = mockCurIndex === mockQuestions.length - 1;
+  document.getElementById('btn-mock-prev').disabled = mockCurIndex === 0;
+
+  renderMockPalette();
+  if (mockConfig.timingMode === 'perq'){ mockPerQSecondsLeft = mockConfig.perqSeconds; }
+  updateMockTimerDisplay();
+}
+
+function selectMockOption(i){
+  mockAnswers[mockCurIndex] = i;
+  document.querySelectorAll('#mock-opt-list .opt').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+  });
+  renderMockPalette();
+}
+
+function renderMockPalette(){
+  const pal = document.getElementById('mock-palette');
+  pal.innerHTML = mockQuestions.map((q, i) => {
+    let cls = mockAnswers[i] !== -1 ? 'answered' : '';
+    if (i === mockCurIndex) cls += ' current';
+    return `<div class="pnode ${cls}" data-i="${i}">${i+1}</div>`;
+  }).join('');
+  pal.querySelectorAll('.pnode').forEach(el => {
+    el.addEventListener('click', () => goToMockQuestion(parseInt(el.dataset.i, 10)));
+  });
+}
+
+function goToMockQuestion(idx){
+  if (idx < 0 || idx >= mockQuestions.length) return;
+  mockCurIndex = idx;
+  renderMockQuestion();
+}
+
+document.getElementById('btn-mock-next').addEventListener('click', () => goToMockQuestion(mockCurIndex + 1));
+document.getElementById('btn-mock-prev').addEventListener('click', () => goToMockQuestion(mockCurIndex - 1));
+document.getElementById('btn-mock-skip').addEventListener('click', () => goToMockQuestion(mockCurIndex + 1));
+document.getElementById('btn-mock-end').addEventListener('click', () => {
+  if (!confirm('Submit your mock test now?')) return;
+  endMockTest();
+});
+
+async function endMockTest(){
+  if (mockTimerIntervalId){ clearInterval(mockTimerIntervalId); mockTimerIntervalId = null; }
+
+  let correct = 0, wrong = 0, notAttempted = 0;
+  mockQuestions.forEach((q, i) => {
+    if (mockAnswers[i] === -1) notAttempted++;
+    else if (mockAnswers[i] === q.ans) correct++;
+    else wrong++;
+  });
+  const total = mockQuestions.length;
+  const negPerWrong = mockConfig.negativeMarking ? 0.25 : 0;
+  const finalMarks = Math.round((correct - wrong * negPerWrong) * 100) / 100;
+  const maxMarks = total;
+  const pct = total > 0 ? Math.round((correct/total)*1000)/10 : 0;
+  const durationSec = Math.round((Date.now() - mockStartTime)/1000);
+
+  document.getElementById('mock-res-tag').textContent =
+    mockConfig.topics.map(t => `${t.subject}→${t.topic} (${t.count})`).join(', ');
+  document.getElementById('mock-res-score').textContent = `${finalMarks}/${maxMarks}`;
+  document.getElementById('mock-res-score').style.color = pct >= 60 ? '#27ae60' : pct >= 40 ? '#e67e22' : '#e74c3c';
+  document.getElementById('mock-res-pct').textContent = `${pct}% — ${correct} out of ${total} correct`;
+  document.getElementById('mock-res-correct').textContent = correct;
+  document.getElementById('mock-res-wrong').textContent = wrong;
+  document.getElementById('mock-res-skipped').textContent = notAttempted;
+  document.getElementById('mock-res-time').textContent = `${Math.floor(durationSec/60)}m ${durationSec%60}s`;
+
+  showView('view-mock-result');
+
+  try{
+    await rpc('save_mock_test_result', {
+      p_mobile: session.mobile, p_password: session.password,
+      p_config: mockConfig, p_questions: mockQuestions, p_answers: mockAnswers,
+      p_time_taken_seconds: durationSec, p_total_q: total, p_correct: correct, p_wrong: wrong,
+      p_not_attempted: notAttempted, p_final_marks: finalMarks, p_max_marks: maxMarks
+    });
+  }catch(err){ /* non-fatal — result is already shown even if saving history fails */ }
+}
+
+document.getElementById('btn-mock-again').addEventListener('click', () => { showView('view-mock-setup'); loadMockSetup(); });
+document.getElementById('btn-mock-result-home').addEventListener('click', () => showView('view-home'));
+document.getElementById('btn-mock-view-review').addEventListener('click', () => {
+  renderMockReview(mockQuestions, mockAnswers);
+  showView('view-mock-review');
+});
+document.getElementById('btn-mock-review-back').addEventListener('click', () => showView('view-mock-result'));
+
+function renderMockReview(questions, answers){
+  const list = document.getElementById('mock-review-list');
+  const tags = ['A','B','C','D'];
+  list.innerHTML = questions.map((q, i) => {
+    const userAns = answers[i];
+    const diHtml = (q.di_content || q.di_image) ?
+      `<div class="di-box">${q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : ''}${q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : ''}</div>` : '';
+    const qImgHtml = q.question_image_url ? `<div class="q-image-wrap"><img src="${esc(q.question_image_url)}" alt="Question figure"></div>` : '';
+    const optsHtml = q.options.map((opt, oi) => {
+      let cls = '';
+      if (oi === q.ans) cls = 'correct';
+      else if (oi === userAns && userAns !== q.ans) cls = 'wrong';
+      const imgUrl = (q.option_images && q.option_images[oi]) || '';
+      const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[oi]}">` : '';
+      return `<div class="rev-opt ${cls}">${tags[oi]}. ${esc(opt)}${imgHtml}</div>`;
+    }).join('');
+    const statusLbl = userAns === -1 ? 'Not attempted' : (userAns === q.ans ? 'Correct' : 'Incorrect');
+    return `<div class="rev-card">
+      <div class="rev-q">${i+1}. ${esc(q.q)} <span style="font-size:11px; color:var(--text-mute);">(${statusLbl}${q.subject ? ' · '+esc(q.subject)+' → '+esc(q.topic) : ''})</span></div>
+      ${diHtml}
+      ${qImgHtml}
+      ${optsHtml}
+      ${q.solution ? `<div class="solution-box show" style="margin-top:8px;"><div class="sl">Solution</div><div class="sm">${esc(q.solution)}</div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function loadMockHistory(){
+  showView('view-mock-history');
+  const list = document.getElementById('mock-history-list');
+  list.innerHTML = '<div class="spin"></div>';
+  try{
+    const rows = await rpc('get_mock_test_history', { p_mobile: session.mobile, p_password: session.password });
+    if (!rows || !rows.length){
+      list.innerHTML = '<div class="empty-state">No mock tests yet. Build one to see your history here.</div>';
+      return;
+    }
+    list.innerHTML = rows.map(r => {
+      const pct = r.total_q > 0 ? Math.round((r.correct/r.total_q)*1000)/10 : 0;
+      const col = pct >= 60 ? '#27ae60' : pct >= 40 ? '#e67e22' : '#e74c3c';
+      const topicsLbl = (r.config && r.config.topics) ? r.config.topics.map(t => `${t.subject}→${t.topic}`).join(', ') : 'Mock test';
+      return `<div class="sess-card" style="cursor:pointer;" data-id="${r.id}">
+        <div class="sess-top">
+          <div class="sess-title">${esc(topicsLbl)}</div>
+          <div class="sess-pct" style="color:${col}">${pct}%</div>
+        </div>
+        <div class="sess-meta">${r.final_marks}/${r.max_marks} marks · ${r.correct}/${r.total_q} correct · ${esc((r.created_at||'').slice(0,16).replace('T',' '))}</div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.sess-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        const id = parseInt(card.dataset.id, 10);
+        try{
+          const rows2 = await rpc('get_mock_test_detail', { p_mobile: session.mobile, p_password: session.password, p_id: id });
+          const detail = rows2 && rows2[0];
+          if (!detail) return;
+          renderMockReview(detail.questions, detail.answers);
+          showView('view-mock-review');
+        }catch(err){ toast('Unable to load this mock test.', 'err'); }
+      });
+    });
+  }catch(err){
+    list.innerHTML = '<div class="empty-state">Unable to load your mock test history right now.</div>';
   }
 }
 
