@@ -661,6 +661,19 @@
     <button class="btn btn-primary" id="btn-save-profile" style="margin:10px 0 22px;">💾 Save profile</button>
   </div>
 
+  <!-- ============ POST-LOGIN EMAIL GATE ============ -->
+  <div class="view" id="view-email-gate">
+    <div class="section-title">Add your email address</div>
+    <div class="section-sub">We use this to send your exam scorecard and answer key after you finish an exam.</div>
+
+    <label class="field-label">Email address</label>
+    <input id="eg-email" type="email" placeholder="you@example.com" autocomplete="email">
+
+    <div class="error-text" id="eg-error"></div>
+    <button class="btn btn-primary" id="btn-eg-save" style="margin:14px 0 10px;">💾 Save & continue</button>
+    <button class="btn btn-ghost" id="btn-eg-skip" style="margin-bottom:22px;">Skip for now</button>
+  </div>
+
   <!-- ============ PRACTICE: SETUP ============ -->
   <div class="view" id="view-prac-setup">
     <div class="section-title">Select your practice session</div>
@@ -1104,7 +1117,7 @@ function showView(id){
   document.getElementById('app-wrap').classList.toggle('exam-wide', isExamAny);
 
   document.getElementById('header-actions').style.display =
-    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
+    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || id === 'view-email-gate' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
   document.getElementById('btn-open-lb').style.display = (id === 'view-ch-list') ? 'inline-block' : 'none';
   document.getElementById('ex-timer-bar').style.display = isExamTaking ? 'flex' : 'none';
 
@@ -1273,13 +1286,7 @@ async function doLogin(){
     session = { mobile: rows[0].mobile, password, name: rows[0].name };
     document.getElementById('who-mini').style.display = 'block';
     document.getElementById('who-mini-name').textContent = session.name;
-    showView('view-home');
-    refreshInboxBadge();
-    startInboxPolling();
-    checkMilestonesOnLogin();
-    refreshExamScheduleStatus();
-    if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
-    examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
+    await routeAfterLogin();
   }catch(err){
     errEl.textContent = 'Connection error. Please check your internet and try again.';
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -1287,6 +1294,69 @@ async function doLogin(){
     btn.disabled = false; btn.textContent = 'Sign in';
   }
 }
+
+let egProfileCache = { class_name: '', semester_year: '', university: '', gender: null };
+
+async function routeAfterLogin(){
+  try{
+    const r = await rpc('get_student_profile', { p_mobile: session.mobile, p_password: session.password });
+    if (r && r.ok && !r.email){
+      egProfileCache = {
+        class_name: r.class_name || '', semester_year: r.semester_year || '',
+        university: r.university || '', gender: r.gender || null
+      };
+      document.getElementById('eg-email').value = '';
+      document.getElementById('eg-error').textContent = '';
+      showView('view-email-gate');
+      return;
+    }
+  }catch(err){
+    // If the profile check itself fails, don't block login — just go home.
+  }
+  enterHomeScreen();
+}
+
+function enterHomeScreen(){
+  showView('view-home');
+  refreshInboxBadge();
+  startInboxPolling();
+  checkMilestonesOnLogin();
+  refreshExamScheduleStatus();
+  if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
+  examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
+}
+
+document.getElementById('btn-eg-save').addEventListener('click', async () => {
+  const errEl = document.getElementById('eg-error');
+  errEl.textContent = '';
+  const email = document.getElementById('eg-email').value.trim();
+  if (!email){ errEl.textContent = 'Email address is required.'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'Please enter a valid email address.'; return; }
+
+  const btn = document.getElementById('btn-eg-save');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try{
+    const r = await rpc('update_student_profile', {
+      p_mobile: session.mobile, p_password: session.password,
+      p_email: email, p_class_name: egProfileCache.class_name, p_semester_year: egProfileCache.semester_year,
+      p_university: egProfileCache.university, p_gender: egProfileCache.gender
+    });
+    if (r && r.ok){
+      enterHomeScreen();
+    } else {
+      errEl.textContent = (r && r.error === 'email_taken') ? 'This email address is already registered with another account.' : 'Could not save email. Please try again.';
+    }
+  }catch(err){
+    errEl.textContent = 'Connection error. Please check your internet and try again.';
+  }finally{
+    btn.disabled = false; btn.textContent = '💾 Save & continue';
+  }
+});
+
+document.getElementById('btn-eg-skip').addEventListener('click', () => {
+  const ok = confirm('If you skip, your exam question paper and answer key will NOT be sent to your email after the exam.\n\nIf you want the question paper with solutions after your exam, please add your email instead.\n\nSkip for now anyway?');
+  if (ok) enterHomeScreen();
+});
 
 /* ============================================================
    HOME MENU
