@@ -876,6 +876,20 @@
   </div>
 
   <!-- ============ LIVE EXAM: BRIEFING ============ -->
+  <!-- ============ LIVE EXAM: READY CONFIRM (pre-briefing) ============ -->
+  <div class="view" id="view-exam-ready">
+    <div class="section-title">📝 Live Examination</div>
+    <div class="brief-card">
+      <h2>Before you proceed</h2>
+      <p style="font-size:13.5px; color:var(--text-dim); line-height:1.6; margin:0;">
+        You are about to begin the live examination. Please make sure you are in a quiet place with a stable internet connection and will not be interrupted until you finish.
+      </p>
+      <p style="font-size:14px; font-weight:700; margin:14px 0 0;">Are you ready to proceed?</p>
+    </div>
+    <button class="btn btn-primary" id="ex-btn-ready-yes" style="margin:14px 0 10px;">Yes, I'm ready</button>
+    <button class="btn btn-ghost" id="ex-btn-ready-cancel" style="margin-bottom:22px;">Not now</button>
+  </div>
+
   <div class="view" id="view-exam-briefing">
     <div class="brief-card" id="ex-resume-banner-wrap" style="display:none;">
       <div class="resume-banner" id="ex-resume-banner"></div>
@@ -894,6 +908,7 @@
         <li>Once submitted, you cannot re-attempt this examination.</li>
       </ul>
     </div>
+    <div class="error-text" id="ex-briefing-error"></div>
     <label class="check-row"><input type="checkbox" id="ex-chk-ready"> I have read the instructions above and I am ready to begin the examination.</label>
     <button class="btn btn-primary" id="ex-btn-start-exam" disabled style="margin:8px 0 22px;">Start examination</button>
   </div>
@@ -1137,7 +1152,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
+const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-exam-ready','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
 
 /* ---------------- REGISTER ---------------- */
 document.getElementById('link-go-register').addEventListener('click', (e) => {
@@ -1361,7 +1376,7 @@ document.getElementById('btn-eg-skip').addEventListener('click', () => {
 /* ============================================================
    HOME MENU
    ============================================================ */
-document.getElementById('menu-live-exam').addEventListener('click', startExamFlow);
+document.getElementById('menu-live-exam').addEventListener('click', openExamReadyScreen);
 document.getElementById('menu-feedback').addEventListener('click', () => {
   showView('view-feedback');
   fbLockedFields();
@@ -3018,8 +3033,14 @@ function buildExamWatermark(text){
   }
 }
 
-async function startExamFlow(){
+function openExamReadyScreen(){
   if (!session) return;
+  showView('view-exam-ready');
+}
+document.getElementById('ex-btn-ready-cancel').addEventListener('click', () => showView('view-home'));
+document.getElementById('ex-btn-ready-yes').addEventListener('click', openExamBriefing);
+
+async function openExamBriefing(){
   if (examScheduleInfo && !examScheduleInfo.isOpen && examScheduleInfo.scheduledStartAt){
     const nowServer = Date.now() + examScheduleInfo.serverOffsetMs;
     if (examScheduleInfo.scheduledStartAt - nowServer > 1500){
@@ -3027,11 +3048,40 @@ async function startExamFlow(){
       return;
     }
   }
-  toast('Loading examination...', '');
+  const btn = document.getElementById('ex-btn-ready-yes');
+  btn.disabled = true; btn.textContent = 'Loading...';
+  try{
+    const r = await rpc('get_exam_briefing_info', {});
+    if (r.error){
+      toast('Unable to load exam details. Please try again.', 'err');
+      return;
+    }
+    document.getElementById('ex-resume-banner-wrap').style.display = 'none';
+    document.getElementById('ex-briefing-error').textContent = '';
+    document.getElementById('ex-chk-ready').checked = false;
+    document.getElementById('ex-btn-start-exam').disabled = true;
+    renderExamDetailCards(r);
+    showView('view-exam-briefing');
+  }catch(err){
+    toast('Connection error. Please check your internet and try again.', 'err');
+  }finally{
+    btn.disabled = false; btn.textContent = "Yes, I'm ready";
+  }
+}
+
+async function confirmStartExam(){
+  if (!session) return;
+  const ok = confirm("You're about to begin the live examination. Once you start, your official attempt and timer will begin.\n\nAre you ready to begin?");
+  if (!ok) return;
+  const errEl = document.getElementById('ex-briefing-error');
+  const btn = document.getElementById('ex-btn-start-exam');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Starting...';
   try{
     const r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
     if (r.error){
-      toast(EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.', 'err');
+      errEl.textContent = EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.';
+      btn.disabled = false; btn.textContent = 'Start examination';
       return;
     }
     exQuestions = r.questions;
@@ -3042,21 +3092,15 @@ async function startExamFlow(){
 
     buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
 
-    document.getElementById('ex-resume-banner-wrap').style.display = 'none';
     if (r.resume){
       const answeredCount = exAnswers.filter(a => a !== -1).length;
       const m = Math.floor(exTimeLeft/60), s = exTimeLeft%60;
-      document.getElementById('ex-resume-banner-wrap').style.display = 'block';
-      document.getElementById('ex-resume-banner').textContent =
-        `Your previous session has been restored: ${answeredCount}/${exAnswers.length} question(s) answered, ` +
-        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining. You will resume from question ${exCurIndex+1}.`;
+      toast(`Resuming your previous session: ${answeredCount}/${exAnswers.length} answered, ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} left.`, '');
     }
-    document.getElementById('ex-chk-ready').checked = false;
-    document.getElementById('ex-btn-start-exam').disabled = true;
-    renderExamDetailCards(r);
-    showView('view-exam-briefing');
+    beginExam();
   }catch(err){
-    toast('Connection error. Please check your internet and try again.', 'err');
+    errEl.textContent = 'Connection error. Please check your internet and try again.';
+    btn.disabled = false; btn.textContent = 'Start examination';
   }
 }
 
@@ -3085,7 +3129,7 @@ function renderExamDetailCards(r){
 document.getElementById('ex-chk-ready').addEventListener('change', (e) => {
   document.getElementById('ex-btn-start-exam').disabled = !e.target.checked;
 });
-document.getElementById('ex-btn-start-exam').addEventListener('click', beginExam);
+document.getElementById('ex-btn-start-exam').addEventListener('click', confirmStartExam);
 
 function beginExam(){
   try{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){}
