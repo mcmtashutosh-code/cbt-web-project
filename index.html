@@ -469,7 +469,6 @@
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
-    <a href="https://dhyeodaya.in/" class="btn btn-ghost" id="btn-back-website" style="margin-bottom:10px; text-decoration:none;">🔙 Back to dhyeodaya.in</a>
     <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:16px;">📤 Share this app</button>
     <div class="menu-grid">
       <div class="menu-card" id="menu-live-exam">
@@ -659,19 +658,6 @@
     <div class="error-text" id="pf-error"></div>
     <div id="pf-success" style="color:var(--ok, #16a34a); font-size:13px; margin-top:4px;"></div>
     <button class="btn btn-primary" id="btn-save-profile" style="margin:10px 0 22px;">💾 Save profile</button>
-  </div>
-
-  <!-- ============ POST-LOGIN EMAIL GATE ============ -->
-  <div class="view" id="view-email-gate">
-    <div class="section-title">Add your email address</div>
-    <div class="section-sub">We use this to send your exam scorecard and answer key after you finish an exam.</div>
-
-    <label class="field-label">Email address</label>
-    <input id="eg-email" type="email" placeholder="you@example.com" autocomplete="email">
-
-    <div class="error-text" id="eg-error"></div>
-    <button class="btn btn-primary" id="btn-eg-save" style="margin:14px 0 10px;">💾 Save & continue</button>
-    <button class="btn btn-ghost" id="btn-eg-skip" style="margin-bottom:22px;">Skip for now</button>
   </div>
 
   <!-- ============ PRACTICE: SETUP ============ -->
@@ -876,20 +862,6 @@
   </div>
 
   <!-- ============ LIVE EXAM: BRIEFING ============ -->
-  <!-- ============ LIVE EXAM: READY CONFIRM (pre-briefing) ============ -->
-  <div class="view" id="view-exam-ready">
-    <div class="section-title">📝 Live Examination</div>
-    <div class="brief-card">
-      <h2>Before you proceed</h2>
-      <p style="font-size:13.5px; color:var(--text-dim); line-height:1.6; margin:0;">
-        You are about to begin the live examination. Please make sure you are in a quiet place with a stable internet connection and will not be interrupted until you finish.
-      </p>
-      <p style="font-size:14px; font-weight:700; margin:14px 0 0;">Are you ready to proceed?</p>
-    </div>
-    <button class="btn btn-primary" id="ex-btn-ready-yes" style="margin:14px 0 10px;">Yes, I'm ready</button>
-    <button class="btn btn-ghost" id="ex-btn-ready-cancel" style="margin-bottom:22px;">Not now</button>
-  </div>
-
   <div class="view" id="view-exam-briefing">
     <div class="brief-card" id="ex-resume-banner-wrap" style="display:none;">
       <div class="resume-banner" id="ex-resume-banner"></div>
@@ -908,7 +880,6 @@
         <li>Once submitted, you cannot re-attempt this examination.</li>
       </ul>
     </div>
-    <div class="error-text" id="ex-briefing-error"></div>
     <label class="check-row"><input type="checkbox" id="ex-chk-ready"> I have read the instructions above and I am ready to begin the examination.</label>
     <button class="btn btn-primary" id="ex-btn-start-exam" disabled style="margin:8px 0 22px;">Start examination</button>
   </div>
@@ -1132,7 +1103,7 @@ function showView(id){
   document.getElementById('app-wrap').classList.toggle('exam-wide', isExamAny);
 
   document.getElementById('header-actions').style.display =
-    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || id === 'view-email-gate' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
+    (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
   document.getElementById('btn-open-lb').style.display = (id === 'view-ch-list') ? 'inline-block' : 'none';
   document.getElementById('ex-timer-bar').style.display = isExamTaking ? 'flex' : 'none';
 
@@ -1152,7 +1123,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-exam-ready','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
+const HOME_ADJACENT = new Set(['view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
 
 /* ---------------- REGISTER ---------------- */
 document.getElementById('link-go-register').addEventListener('click', (e) => {
@@ -1301,7 +1272,13 @@ async function doLogin(){
     session = { mobile: rows[0].mobile, password, name: rows[0].name };
     document.getElementById('who-mini').style.display = 'block';
     document.getElementById('who-mini-name').textContent = session.name;
-    await routeAfterLogin();
+    showView('view-home');
+    refreshInboxBadge();
+    startInboxPolling();
+    checkMilestonesOnLogin();
+    refreshExamScheduleStatus();
+    if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
+    examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
   }catch(err){
     errEl.textContent = 'Connection error. Please check your internet and try again.';
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -1309,74 +1286,11 @@ async function doLogin(){
     btn.disabled = false; btn.textContent = 'Sign in';
   }
 }
-
-let egProfileCache = { class_name: '', semester_year: '', university: '', gender: null };
-
-async function routeAfterLogin(){
-  try{
-    const r = await rpc('get_student_profile', { p_mobile: session.mobile, p_password: session.password });
-    if (r && r.ok && !r.email){
-      egProfileCache = {
-        class_name: r.class_name || '', semester_year: r.semester_year || '',
-        university: r.university || '', gender: r.gender || null
-      };
-      document.getElementById('eg-email').value = '';
-      document.getElementById('eg-error').textContent = '';
-      showView('view-email-gate');
-      return;
-    }
-  }catch(err){
-    // If the profile check itself fails, don't block login — just go home.
-  }
-  enterHomeScreen();
-}
-
-function enterHomeScreen(){
-  showView('view-home');
-  refreshInboxBadge();
-  startInboxPolling();
-  checkMilestonesOnLogin();
-  refreshExamScheduleStatus();
-  if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
-  examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
-}
-
-document.getElementById('btn-eg-save').addEventListener('click', async () => {
-  const errEl = document.getElementById('eg-error');
-  errEl.textContent = '';
-  const email = document.getElementById('eg-email').value.trim();
-  if (!email){ errEl.textContent = 'Email address is required.'; return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'Please enter a valid email address.'; return; }
-
-  const btn = document.getElementById('btn-eg-save');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  try{
-    const r = await rpc('update_student_profile', {
-      p_mobile: session.mobile, p_password: session.password,
-      p_email: email, p_class_name: egProfileCache.class_name, p_semester_year: egProfileCache.semester_year,
-      p_university: egProfileCache.university, p_gender: egProfileCache.gender
-    });
-    if (r && r.ok){
-      enterHomeScreen();
-    } else {
-      errEl.textContent = (r && r.error === 'email_taken') ? 'This email address is already registered with another account.' : 'Could not save email. Please try again.';
-    }
-  }catch(err){
-    errEl.textContent = 'Connection error. Please check your internet and try again.';
-  }finally{
-    btn.disabled = false; btn.textContent = '💾 Save & continue';
-  }
-});
-
-document.getElementById('btn-eg-skip').addEventListener('click', () => {
-  const ok = confirm('If you skip, your exam question paper and answer key will NOT be sent to your email after the exam.\n\nIf you want the question paper with solutions after your exam, please add your email instead.\n\nSkip for now anyway?');
-  if (ok) enterHomeScreen();
-});
 
 /* ============================================================
    HOME MENU
    ============================================================ */
-document.getElementById('menu-live-exam').addEventListener('click', openExamReadyScreen);
+document.getElementById('menu-live-exam').addEventListener('click', startExamFlow);
 document.getElementById('menu-feedback').addEventListener('click', () => {
   showView('view-feedback');
   fbLockedFields();
@@ -2955,6 +2869,7 @@ const EX_ERROR_MESSAGES = {
   not_configured: 'The examination has not been configured yet. Please contact your administrator.',
   window_inactive: 'No active examination is currently scheduled. Please contact your administrator.',
   not_yet_started: 'The examination has not started yet. Please wait for the scheduled time.',
+  window_closed: 'The examination window has closed. Please contact your administrator.',
   already_submitted: 'Your examination has already been submitted. Re-login is not permitted.',
   concurrent_session: 'An active examination session already exists for these credentials on another device. Please contact your administrator or invigilator.',
   no_questions: 'The question paper is empty. Please contact your administrator.',
@@ -2975,6 +2890,7 @@ async function refreshExamScheduleStatus(){
     examScheduleInfo = {
       isOpen: !!r.is_open,
       scheduledStartAt: r.scheduled_start_at ? new Date(r.scheduled_start_at).getTime() : null,
+      scheduledEndAt: r.scheduled_end_at ? new Date(r.scheduled_end_at).getTime() : null,
       serverOffsetMs
     };
     updateLiveExamSubtitle();
@@ -2990,9 +2906,20 @@ function updateLiveExamSubtitle(){
     if (examCountdownIntervalId){ clearInterval(examCountdownIntervalId); examCountdownIntervalId = null; }
     return;
   }
+
+  const nowServerNow = Date.now() + examScheduleInfo.serverOffsetMs;
+  const alreadyEnded = examScheduleInfo.scheduledEndAt && nowServerNow >= examScheduleInfo.scheduledEndAt;
+  if (alreadyEnded){
+    el.textContent = '🔒 Exam window closed';
+    el.style.color = 'var(--danger)';
+    if (examCountdownIntervalId){ clearInterval(examCountdownIntervalId); examCountdownIntervalId = null; }
+    return;
+  }
+
   if (!examScheduleInfo.scheduledStartAt){
     el.textContent = 'Not currently available';
     el.style.color = 'var(--text-mute)';
+    if (examCountdownIntervalId){ clearInterval(examCountdownIntervalId); examCountdownIntervalId = null; }
     return;
   }
   const tick = () => {
@@ -3033,55 +2960,24 @@ function buildExamWatermark(text){
   }
 }
 
-function openExamReadyScreen(){
+async function startExamFlow(){
   if (!session) return;
-  showView('view-exam-ready');
-}
-document.getElementById('ex-btn-ready-cancel').addEventListener('click', () => showView('view-home'));
-document.getElementById('ex-btn-ready-yes').addEventListener('click', openExamBriefing);
-
-async function openExamBriefing(){
-  if (examScheduleInfo && !examScheduleInfo.isOpen && examScheduleInfo.scheduledStartAt){
+  if (examScheduleInfo && !examScheduleInfo.isOpen){
     const nowServer = Date.now() + examScheduleInfo.serverOffsetMs;
-    if (examScheduleInfo.scheduledStartAt - nowServer > 1500){
+    if (examScheduleInfo.scheduledEndAt && nowServer >= examScheduleInfo.scheduledEndAt){
+      toast('The examination window has closed.', 'err');
+      return;
+    }
+    if (examScheduleInfo.scheduledStartAt && (examScheduleInfo.scheduledStartAt - nowServer > 1500)){
       toast('The exam has not started yet. Please wait for the scheduled time.', 'err');
       return;
     }
   }
-  const btn = document.getElementById('ex-btn-ready-yes');
-  btn.disabled = true; btn.textContent = 'Loading...';
-  try{
-    const r = await rpc('get_exam_briefing_info', {});
-    if (r.error){
-      toast('Unable to load exam details. Please try again.', 'err');
-      return;
-    }
-    document.getElementById('ex-resume-banner-wrap').style.display = 'none';
-    document.getElementById('ex-briefing-error').textContent = '';
-    document.getElementById('ex-chk-ready').checked = false;
-    document.getElementById('ex-btn-start-exam').disabled = true;
-    renderExamDetailCards(r);
-    showView('view-exam-briefing');
-  }catch(err){
-    toast('Connection error. Please check your internet and try again.', 'err');
-  }finally{
-    btn.disabled = false; btn.textContent = "Yes, I'm ready";
-  }
-}
-
-async function confirmStartExam(){
-  if (!session) return;
-  const ok = confirm("You're about to begin the live examination. Once you start, your official attempt and timer will begin.\n\nAre you ready to begin?");
-  if (!ok) return;
-  const errEl = document.getElementById('ex-briefing-error');
-  const btn = document.getElementById('ex-btn-start-exam');
-  errEl.textContent = '';
-  btn.disabled = true; btn.textContent = 'Starting...';
+  toast('Loading examination...', '');
   try{
     const r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
     if (r.error){
-      errEl.textContent = EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.';
-      btn.disabled = false; btn.textContent = 'Start examination';
+      toast(EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.', 'err');
       return;
     }
     exQuestions = r.questions;
@@ -3092,15 +2988,21 @@ async function confirmStartExam(){
 
     buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
 
+    document.getElementById('ex-resume-banner-wrap').style.display = 'none';
     if (r.resume){
       const answeredCount = exAnswers.filter(a => a !== -1).length;
       const m = Math.floor(exTimeLeft/60), s = exTimeLeft%60;
-      toast(`Resuming your previous session: ${answeredCount}/${exAnswers.length} answered, ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} left.`, '');
+      document.getElementById('ex-resume-banner-wrap').style.display = 'block';
+      document.getElementById('ex-resume-banner').textContent =
+        `Your previous session has been restored: ${answeredCount}/${exAnswers.length} question(s) answered, ` +
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining. You will resume from question ${exCurIndex+1}.`;
     }
-    beginExam();
+    document.getElementById('ex-chk-ready').checked = false;
+    document.getElementById('ex-btn-start-exam').disabled = true;
+    renderExamDetailCards(r);
+    showView('view-exam-briefing');
   }catch(err){
-    errEl.textContent = 'Connection error. Please check your internet and try again.';
-    btn.disabled = false; btn.textContent = 'Start examination';
+    toast('Connection error. Please check your internet and try again.', 'err');
   }
 }
 
@@ -3129,7 +3031,7 @@ function renderExamDetailCards(r){
 document.getElementById('ex-chk-ready').addEventListener('change', (e) => {
   document.getElementById('ex-btn-start-exam').disabled = !e.target.checked;
 });
-document.getElementById('ex-btn-start-exam').addEventListener('click', confirmStartExam);
+document.getElementById('ex-btn-start-exam').addEventListener('click', beginExam);
 
 function beginExam(){
   try{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){}
