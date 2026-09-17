@@ -1093,6 +1093,37 @@ async function restGetAll(table, query){
 /* ============================================================
    ROUTER
    ============================================================ */
+/* ---------------- SCREEN WAKE LOCK (keeps phone from auto-locking during a test) ---------------- */
+let wakeLockRef = null;
+let wakeLockWanted = false;
+
+async function manageScreenWakeLock(shouldHold){
+  wakeLockWanted = shouldHold;
+  if (!('wakeLock' in navigator)) return; // unsupported browser — silently no-op
+
+  if (shouldHold){
+    if (wakeLockRef) return; // already held
+    try{
+      wakeLockRef = await navigator.wakeLock.request('screen');
+      wakeLockRef.addEventListener('release', () => { wakeLockRef = null; });
+    }catch(err){ /* permission denied or unsupported in this context — ignore */ }
+  } else {
+    if (wakeLockRef){
+      try{ await wakeLockRef.release(); }catch(err){ /* ignore */ }
+      wakeLockRef = null;
+    }
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  // Browsers auto-release the wake lock when a tab is hidden; re-acquire it
+  // once the student switches back, so a brief app-switch doesn't leave the
+  // screen unprotected for the rest of the test.
+  if (document.visibilityState === 'visible' && wakeLockWanted && !wakeLockRef){
+    manageScreenWakeLock(true);
+  }
+});
+
 function showView(id){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1101,6 +1132,8 @@ function showView(id){
   const isExamResultLike = (id === 'view-exam-result' || id === 'view-exam-review');
   const isExamAny = isExamTaking || isExamResultLike || id === 'view-exam-briefing';
   document.getElementById('app-wrap').classList.toggle('exam-wide', isExamAny);
+
+  manageScreenWakeLock(id === 'view-exam-taking' || id === 'view-mock-exam');
 
   document.getElementById('header-actions').style.display =
     (id === 'view-login' || id === 'view-register' || id === 'view-pending-approval' || isExamTaking || isExamResultLike || id === 'view-mock-exam') ? 'none' : 'flex';
