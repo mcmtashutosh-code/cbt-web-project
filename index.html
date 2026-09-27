@@ -1345,7 +1345,12 @@ async function doLogin(){
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
     /* STRICT: har institute ke link par sirf usi institute ke students */
-    const expectedInst = instCode || 'VIDYAPATH';
+    try{ await instReady; }catch(e){}
+    if (instLinkInvalid){
+      errEl.textContent = 'This institute link is invalid or has been changed. Please get the latest link from your institute.';
+      btn.disabled = false; btn.textContent = 'Sign in'; return;
+    }
+    const expectedInst = instResolvedCode || 'VIDYAPATH';
     if (rows[0].institute_code && rows[0].institute_code !== expectedInst){
       errEl.textContent = 'This account belongs to another institute. Please sign in using your own institute\'s portal link.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
@@ -1358,7 +1363,7 @@ async function doLogin(){
     session = { mobile: rows[0].mobile, password, name: rows[0].name,
                 institute_code: rows[0].institute_code || '', institute_name: rows[0].institute_name || '' };
     applyInstituteBrand(session.institute_name);
-    if (session.institute_code && session.institute_code !== instCode) applyThemeForCode(session.institute_code);
+    applyMyInstitute();
     document.getElementById('who-mini').style.display = 'block';
     document.getElementById('who-mini-name').textContent = session.name;
     showView('view-home');
@@ -1398,8 +1403,8 @@ document.getElementById('menu-password').addEventListener('click', () => {
 });
 document.getElementById('btn-share-app').addEventListener('click', async () => {
   const baseUrl = window.location.href.split('#')[0].split('?')[0];
-  const shareUrl = (session && session.institute_code && session.institute_code !== 'VIDYAPATH')
-    ? baseUrl + '?inst=' + encodeURIComponent(session.institute_code) : baseUrl;
+  const shareUrl = (session && session.join_key)
+    ? baseUrl + '?inst=' + encodeURIComponent(session.join_key) : baseUrl;
   const instLabel = (session && session.institute_name) ? session.institute_name : 'Vidyapath';
   if (!/^https?:\/\//i.test(shareUrl)){
     toast('Sharing only works on the live website, not a locally opened file.', 'err');
@@ -3583,11 +3588,18 @@ function applyInstituteTheme(info){
     }
   }
 }
-async function applyThemeForCode(code){
-  if (!code) return;
+let instResolvedCode = '';     // gupt link se mila asli institute code (jaise SHARMA)
+let instLinkInvalid = false;   // link diya tha lekin galat/purana nikla
+/* Login ke baad: student ke apne institute ka naam, logo, rang, share link */
+async function applyMyInstitute(){
+  if (!session) return;
   try{
-    const r = await rpc('get_institute_public', { p_code: code });
-    if (r && r.ok) applyInstituteTheme(r);
+    const r = await rpc('get_my_institute', { p_mobile: session.mobile, p_password: session.password });
+    if (r && r.ok){
+      session.join_key = r.join_key || '';
+      applyInstituteBrand(r.short_name || r.name);
+      applyInstituteTheme(r);
+    }
   }catch(e){ /* theme optional */ }
 }
 async function loadInstitute(){
@@ -3595,15 +3607,17 @@ async function loadInstitute(){
   try{
     const r = await rpc('get_institute_public', { p_code: instCode });
     if (r && r.ok){
+      instResolvedCode = r.code;
       applyInstituteBrand(r.short_name || r.name);
       applyInstituteTheme(r);
     } else {
+      instLinkInvalid = true;
       instCode = '';
-      toast('Ye institute link sahi nahi hai ya abhi band hai. Kripya apne institute se sahi link lijiye.', 'err');
+      toast('Ye institute link sahi nahi hai ya badal diya gaya hai. Kripya apne institute se naya link lijiye.', 'err');
     }
   }catch(e){ /* network issue: portal normal chalta rahe */ }
 }
-loadInstitute();
+const instReady = loadInstitute();
 
 /* ---------------- FORGOT PASSWORD (email OTP) ---------------- */
 let fpCooldownTimer = null;
