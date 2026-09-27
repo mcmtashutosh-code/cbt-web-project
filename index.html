@@ -1344,6 +1344,12 @@ async function doLogin(){
       errEl.textContent = 'Invalid mobile number or password.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
+    /* STRICT: har institute ke link par sirf usi institute ke students */
+    const expectedInst = instCode || 'VIDYAPATH';
+    if (rows[0].institute_code && rows[0].institute_code !== expectedInst){
+      errEl.textContent = 'This account belongs to another institute. Please sign in using your own institute\'s portal link.';
+      btn.disabled = false; btn.textContent = 'Sign in'; return;
+    }
     if (rows[0].is_approved === false){
       showView('view-pending-approval');
       btn.disabled = false; btn.textContent = 'Sign in';
@@ -1352,6 +1358,7 @@ async function doLogin(){
     session = { mobile: rows[0].mobile, password, name: rows[0].name,
                 institute_code: rows[0].institute_code || '', institute_name: rows[0].institute_name || '' };
     applyInstituteBrand(session.institute_name);
+    if (session.institute_code && session.institute_code !== instCode) applyThemeForCode(session.institute_code);
     document.getElementById('who-mini').style.display = 'block';
     document.getElementById('who-mini-name').textContent = session.name;
     showView('view-home');
@@ -3559,12 +3566,37 @@ function applyInstituteBrand(name){
   if (el) el.textContent = name;
   document.title = name + ' — CBT Examination Portal';
 }
+/* Institute ka logo + rang (sirf tab jab super-admin ne set kiya ho) */
+function applyInstituteTheme(info){
+  if (!info) return;
+  if (info.primary_color && /^#[0-9a-fA-F]{6}$/.test(info.primary_color)){
+    document.documentElement.style.setProperty('--accent', info.primary_color);
+    document.documentElement.style.setProperty('--accent-hover', info.primary_color);
+  }
+  if (info.logo_url && /^https:\/\//i.test(info.logo_url)){
+    const badge = document.querySelector('.brandbar .badge');
+    if (badge){
+      const img = document.createElement('img');
+      img.src = info.logo_url; img.alt = '';
+      img.style.cssText = 'height:28px; width:auto; max-width:90px; display:block; border-radius:6px; object-fit:contain;';
+      img.onload = () => { badge.textContent = ''; badge.style.padding = '0'; badge.style.background = 'transparent'; badge.appendChild(img); };
+    }
+  }
+}
+async function applyThemeForCode(code){
+  if (!code) return;
+  try{
+    const r = await rpc('get_institute_public', { p_code: code });
+    if (r && r.ok) applyInstituteTheme(r);
+  }catch(e){ /* theme optional */ }
+}
 async function loadInstitute(){
   if (!instCode) return;
   try{
     const r = await rpc('get_institute_public', { p_code: instCode });
     if (r && r.ok){
       applyInstituteBrand(r.short_name || r.name);
+      applyInstituteTheme(r);
     } else {
       instCode = '';
       toast('Ye institute link sahi nahi hai ya abhi band hai. Kripya apne institute se sahi link lijiye.', 'err');
