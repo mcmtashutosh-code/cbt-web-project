@@ -3381,7 +3381,7 @@ function showExamResult(r){
 
   if (r.immediate){
     document.getElementById('ex-i-name').textContent = session.name;
-    document.getElementById('ex-i-mobile').textContent = session.mobile;
+    document.getElementById('ex-i-mobile').textContent = maskMobile(session.mobile);
     document.getElementById('ex-i-login').textContent = r.login_time || '—';
     document.getElementById('ex-i-logout').textContent = r.logout_time || '—';
     document.getElementById('ex-i-duration').textContent = formatExamDuration(r.duration_used_sec);
@@ -3410,7 +3410,7 @@ function showExamResult(r){
     exReviewMarks = { correct: r.marks_correct, wrong: r.marks_wrong };
   } else {
     document.getElementById('ex-d-name').textContent = session.name;
-    document.getElementById('ex-d-mobile').textContent = session.mobile;
+    document.getElementById('ex-d-mobile').textContent = maskMobile(session.mobile);
     document.getElementById('ex-d-login').textContent = r.login_time || '—';
     document.getElementById('ex-d-logout').textContent = r.logout_time || '—';
     document.getElementById('ex-d-duration').textContent = formatExamDuration(r.duration_used_sec);
@@ -3468,7 +3468,7 @@ document.getElementById('ex-btn-result-home').addEventListener('click', () => sh
 function renderExamReviewPanel(){
   showView('view-exam-review');
   document.getElementById('ex-rv-name').textContent = session.name;
-  document.getElementById('ex-rv-mobile').textContent = session.mobile;
+  document.getElementById('ex-rv-mobile').textContent = maskMobile(session.mobile);
   const list = document.getElementById('ex-review-list');
   if (!exReviewData){ list.innerHTML = '<div class="empty-state">Review is not available.</div>'; return; }
 
@@ -3506,6 +3506,13 @@ function renderExamReviewPanel(){
       ${optsHtml}
     </div>`;
   }).join('');
+}
+
+/* Result pages and PDF show a masked mobile: first 2 + last 3 digits (e.g. 98*****210) */
+function maskMobile(m){
+  const d = String(m || '');
+  if (d.length <= 5) return d;
+  return d.slice(0, 2) + '*'.repeat(d.length - 5) + d.slice(-3);
 }
 
 document.getElementById('ex-ab-download-pdf').addEventListener('click', () => {
