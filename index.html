@@ -409,6 +409,7 @@
         <div class="error-text" id="fp-msg" style="margin-top:6px;"></div>
         <p style="margin:8px 0 0; font-size:12px; opacity:.8;">Didn't receive the OTP, or no email on file? Please contact your institute administrator to reset your password.</p>
       </div>
+      <button class="btn btn-ghost" id="btn-install-login" style="display:none; margin-top:12px;">📲 Install app</button>
       <div style="text-align:center; margin-top:14px; font-size:13px; color:var(--text-dim);">
         New here? <a href="#" id="link-go-register" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Register here</a>
       </div>
@@ -490,7 +491,8 @@
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
-    <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:16px;">📤 Share this app</button>
+    <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:10px;">📤 Share this app</button>
+    <button class="btn btn-ghost" id="btn-install-home" style="display:none; margin-bottom:16px;">📲 Install app</button>
     <div class="menu-grid">
       <div class="menu-card" id="menu-live-exam">
         <div class="mi">📝</div>
@@ -1341,7 +1343,11 @@ async function doLogin(){
   try{
     const rows = await rpc('verify_student_login', { p_mobile: mobile, p_password: password });
     if (!rows || rows.length === 0){
-      errEl.textContent = 'Invalid mobile number or password.';
+      let reason = 'invalid';
+      try{ reason = await rpc('student_login_status', { p_mobile: mobile, p_password: password }); }catch(e){}
+      errEl.textContent = reason === 'institute_inactive'
+        ? "Your institute's access is currently inactive. Please contact your institute."
+        : 'Invalid mobile number or password.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
     /* Strict mode: each institute link accepts only that institute's students */
@@ -1351,7 +1357,7 @@ async function doLogin(){
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
     const expectedInst = instResolvedCode || 'VIDYAPATH';
-    if (rows[0].institute_code && rows[0].institute_code !== expectedInst){
+    if (!isInstalledApp() && rows[0].institute_code && rows[0].institute_code !== expectedInst){
       errEl.textContent = 'This account belongs to another institute. Please sign in using your own institute\'s portal link.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
@@ -3565,6 +3571,13 @@ document.getElementById('btn-change-password').addEventListener('click', async (
    (without ?inst the portal serves the main institute, Vidyapath)
    ============================================================ */
 let instCode = (new URLSearchParams(window.location.search).get('inst') || '').trim().toUpperCase();
+function isInstalledApp(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+/* Installed app opens without ?inst — reuse the institute link remembered from the last sign-in */
+if (!instCode && isInstalledApp()){
+  try{ instCode = (localStorage.getItem('cbt_join_key') || '').trim().toUpperCase(); }catch(e){}
+}
 function applyInstituteBrand(name){
   if (!name) return;
   const el = document.querySelector('.brandbar .name');
@@ -3597,6 +3610,7 @@ async function applyMyInstitute(){
     const r = await rpc('get_my_institute', { p_mobile: session.mobile, p_password: session.password });
     if (r && r.ok){
       session.join_key = r.join_key || '';
+      try{ localStorage.setItem('cbt_join_key', session.join_key); }catch(e){}
       applyInstituteBrand(r.short_name || r.name);
       applyInstituteTheme(r);
     }
@@ -3727,6 +3741,27 @@ document.getElementById('btn-fp-reset').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = 'Reset password';
   }
 });
+
+/* ---------------- INSTALL APP BUTTON ---------------- */
+let deferredInstall = null;
+const installBtns = ['btn-install-login', 'btn-install-home'].map(id => document.getElementById(id));
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  installBtns.forEach(b => { if (b) b.style.display = 'block'; });
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  installBtns.forEach(b => { if (b) b.style.display = 'none'; });
+  toast('App installed. You can now open it from your home screen.', 'ok');
+});
+installBtns.forEach(b => b && b.addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  try{ await deferredInstall.userChoice; }catch(e){}
+  deferredInstall = null;
+  installBtns.forEach(x => { if (x) x.style.display = 'none'; });
+}));
 </script>
 </body>
 </html>
