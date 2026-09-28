@@ -392,22 +392,22 @@
         <a href="#" id="link-forgot-pw" style="color:var(--accent-text); font-size:13px; text-decoration:none;">Forgot password?</a>
       </div>
       <div id="forgot-pw-help" style="display:none; margin-top:10px; padding:14px; border-radius:10px; border:1px solid var(--accent-text); font-size:13px; line-height:1.5;">
-        <div style="font-weight:700; margin-bottom:6px;">Password reset — email OTP</div>
+        <div style="font-weight:700; margin-bottom:6px;">Reset your password</div>
         <div id="fp-step1">
-          <p style="margin:0 0 8px;">Apna registered mobile number daaliye. Aapki registered email par 6 ank ka OTP aayega.</p>
+          <p style="margin:0 0 8px;">Enter your registered mobile number. A 6-digit OTP will be sent to your registered email address.</p>
           <input id="fp-mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="Registered mobile number">
           <button class="btn btn-primary" id="btn-fp-send" style="margin-top:8px;">Send OTP</button>
         </div>
         <div id="fp-step2" style="display:none;">
           <p style="margin:0 0 8px;" id="fp-sent-note"></p>
-          <input id="fp-otp" type="tel" inputmode="numeric" maxlength="6" placeholder="6 ank ka OTP" autocomplete="one-time-code">
-          <input id="fp-new" type="password" placeholder="Naya password (letters + numbers, kam se kam 6)" style="margin-top:8px;">
-          <input id="fp-confirm" type="password" placeholder="Naya password dobara" style="margin-top:8px;">
+          <input id="fp-otp" type="tel" inputmode="numeric" maxlength="6" placeholder="6-digit OTP" autocomplete="one-time-code">
+          <input id="fp-new" type="password" placeholder="New password (min. 6 characters, letters and numbers)" style="margin-top:8px;">
+          <input id="fp-confirm" type="password" placeholder="Confirm new password" style="margin-top:8px;">
           <button class="btn btn-primary" id="btn-fp-reset" style="margin-top:8px;">Reset password</button>
-          <div style="text-align:right; margin-top:6px;"><a href="#" id="link-fp-resend" style="color:var(--accent-text); text-decoration:none;">OTP dobara bhejo</a></div>
+          <div style="text-align:right; margin-top:6px;"><a href="#" id="link-fp-resend" style="color:var(--accent-text); text-decoration:none;">Resend OTP</a></div>
         </div>
         <div class="error-text" id="fp-msg" style="margin-top:6px;"></div>
-        <p style="margin:8px 0 0; font-size:12px; opacity:.8;">OTP na aaye, ya email registered na ho, to apne institute ke admin se password reset karwaiye.</p>
+        <p style="margin:8px 0 0; font-size:12px; opacity:.8;">Didn't receive the OTP, or no email on file? Please contact your institute administrator to reset your password.</p>
       </div>
       <div style="text-align:center; margin-top:14px; font-size:13px; color:var(--text-dim);">
         New here? <a href="#" id="link-go-register" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Register here</a>
@@ -1344,7 +1344,7 @@ async function doLogin(){
       errEl.textContent = 'Invalid mobile number or password.';
       btn.disabled = false; btn.textContent = 'Sign in'; return;
     }
-    /* STRICT: har institute ke link par sirf usi institute ke students */
+    /* Strict mode: each institute link accepts only that institute's students */
     try{ await instReady; }catch(e){}
     if (instLinkInvalid){
       errEl.textContent = 'This institute link is invalid or has been changed. Please get the latest link from your institute.';
@@ -3561,8 +3561,8 @@ document.getElementById('btn-change-password').addEventListener('click', async (
 });
 
 /* ============================================================
-   MULTI-INSTITUTE: ?inst=CODE link se institute pehchaan
-   (link mein code na ho to portal pehle jaisa Vidyapath ke liye)
+   MULTI-INSTITUTE: identify the institute from the ?inst= link
+   (without ?inst the portal serves the main institute, Vidyapath)
    ============================================================ */
 let instCode = (new URLSearchParams(window.location.search).get('inst') || '').trim().toUpperCase();
 function applyInstituteBrand(name){
@@ -3571,7 +3571,7 @@ function applyInstituteBrand(name){
   if (el) el.textContent = name;
   document.title = name + ' — CBT Examination Portal';
 }
-/* Institute ka logo + rang (sirf tab jab super-admin ne set kiya ho) */
+/* Apply institute logo and brand colour (only when configured by the super admin) */
 function applyInstituteTheme(info){
   if (!info) return;
   if (info.primary_color && /^#[0-9a-fA-F]{6}$/.test(info.primary_color)){
@@ -3588,9 +3588,9 @@ function applyInstituteTheme(info){
     }
   }
 }
-let instResolvedCode = '';     // gupt link se mila asli institute code (jaise SHARMA)
-let instLinkInvalid = false;   // link diya tha lekin galat/purana nikla
-/* Login ke baad: student ke apne institute ka naam, logo, rang, share link */
+let instResolvedCode = '';     // institute code resolved from the private join link (e.g. SHARMA)
+let instLinkInvalid = false;   // a link was supplied but is invalid or outdated
+/* After sign-in: apply the student's own institute name, logo, colour and share link */
 async function applyMyInstitute(){
   if (!session) return;
   try{
@@ -3613,9 +3613,9 @@ async function loadInstitute(){
     } else {
       instLinkInvalid = true;
       instCode = '';
-      toast('Ye institute link sahi nahi hai ya badal diya gaya hai. Kripya apne institute se naya link lijiye.', 'err');
+      toast('This institute link is invalid or has been changed. Please request the latest link from your institute.', 'err');
     }
-  }catch(e){ /* network issue: portal normal chalta rahe */ }
+  }catch(e){ /* network issue: continue with default branding */ }
 }
 const instReady = loadInstitute();
 
@@ -3640,10 +3640,10 @@ document.getElementById('link-forgot-pw').addEventListener('click', (e) => {
 });
 async function fpSendOtp(){
   const mobile = document.getElementById('fp-mobile').value.trim();
-  if (!/^\d{10}$/.test(mobile)){ fpMsg('Kripya sahi 10 ank ka mobile number daaliye.'); return; }
+  if (!/^\d{10}$/.test(mobile)){ fpMsg('Please enter a valid 10-digit mobile number.'); return; }
   const btn = document.getElementById('btn-fp-send');
   const resend = document.getElementById('link-fp-resend');
-  btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
+  btn.disabled = true; btn.textContent = 'Sending...';
   fpMsg('');
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/password-reset-otp`, {
@@ -3656,19 +3656,19 @@ async function fpSendOtp(){
       document.getElementById('fp-step1').style.display = 'none';
       document.getElementById('fp-step2').style.display = 'block';
       document.getElementById('fp-sent-note').textContent =
-        'Agar ye number registered hai aur iske saath email judi hai, to OTP bhej diya gaya hai. Inbox aur Spam folder dekhiye. OTP 10 minute tak valid hai.';
+        'If this number is registered with an email address, an OTP has been sent to it. Please check your inbox and spam folder. The OTP is valid for 10 minutes.';
       fpStartCooldown(60);
     } else if (data.error === 'too_soon'){
-      fpMsg('Abhi-abhi OTP bheja gaya hai. 1 minute baad dobara koshish kariye.');
+      fpMsg('An OTP was sent just now. Please wait a minute before requesting another.');
     } else if (data.error === 'daily_limit'){
-      fpMsg('Aaj ke liye OTP ki seema poori ho gayi. Kal koshish kariye, ya admin se reset karwaiye.');
+      fpMsg('Daily OTP limit reached. Please try again tomorrow or contact your institute administrator.');
     } else if (data.error === 'email_send_failed'){
-      fpMsg('Email nahi bhej paaye. Thodi der baad koshish kariye, ya admin se reset karwaiye.');
+      fpMsg('We could not send the email right now. Please try again shortly or contact your institute administrator.');
     } else {
-      fpMsg('Kuch gadbad hui. Thodi der baad koshish kariye.');
+      fpMsg('Something went wrong. Please try again shortly.');
     }
   }catch(err){
-    fpMsg('Connection error. Internet check karke dobara koshish kariye.');
+    fpMsg('Connection error. Please check your internet connection and try again.');
   }finally{
     btn.disabled = false; btn.textContent = 'Send OTP';
   }
@@ -3678,14 +3678,14 @@ function fpStartCooldown(sec){
   let left = sec;
   link.style.pointerEvents = 'none'; link.style.opacity = '.5';
   if (fpCooldownTimer) clearInterval(fpCooldownTimer);
-  link.textContent = `OTP dobara bhejo (${left}s)`;
+  link.textContent = `Resend OTP (${left}s)`;
   fpCooldownTimer = setInterval(() => {
     left--;
     if (left <= 0){
       clearInterval(fpCooldownTimer); fpCooldownTimer = null;
-      link.textContent = 'OTP dobara bhejo'; link.style.pointerEvents = ''; link.style.opacity = '';
+      link.textContent = 'Resend OTP'; link.style.pointerEvents = ''; link.style.opacity = '';
     } else {
-      link.textContent = `OTP dobara bhejo (${left}s)`;
+      link.textContent = `Resend OTP (${left}s)`;
     }
   }, 1000);
 }
@@ -3696,11 +3696,11 @@ document.getElementById('btn-fp-reset').addEventListener('click', async () => {
   const otp = document.getElementById('fp-otp').value.trim();
   const pw = document.getElementById('fp-new').value;
   const pw2 = document.getElementById('fp-confirm').value;
-  if (!/^\d{6}$/.test(otp)){ fpMsg('Email mein aaya 6 ank ka OTP daaliye.'); return; }
-  if (pw.length < 6 || !/[a-zA-Z]/.test(pw) || !/[0-9]/.test(pw)){ fpMsg('Password kam se kam 6 akshar ka ho aur usme letters aur numbers dono hon.'); return; }
-  if (pw !== pw2){ fpMsg('Dono password match nahi kar rahe.'); return; }
+  if (!/^\d{6}$/.test(otp)){ fpMsg('Please enter the 6-digit OTP sent to your email.'); return; }
+  if (pw.length < 6 || !/[a-zA-Z]/.test(pw) || !/[0-9]/.test(pw)){ fpMsg('Password must be at least 6 characters and contain both letters and numbers.'); return; }
+  if (pw !== pw2){ fpMsg('Passwords do not match.'); return; }
   const btn = document.getElementById('btn-fp-reset');
-  btn.disabled = true; btn.textContent = 'Reset ho raha hai...';
+  btn.disabled = true; btn.textContent = 'Resetting...';
   fpMsg('');
   try{
     const r = await rpc('reset_password_with_otp', { p_mobile: mobile, p_otp: otp, p_new_password: pw });
@@ -3709,20 +3709,20 @@ document.getElementById('btn-fp-reset').addEventListener('click', async () => {
       document.getElementById('forgot-pw-help').style.display = 'none';
       document.getElementById('in-mobile').value = mobile;
       document.getElementById('in-pass').value = '';
-      toast('Password badal gaya! Ab naye password se login kariye.', 'ok');
+      toast('Your password has been reset. Please sign in with your new password.', 'ok');
     } else if (r && r.error === 'wrong_otp'){
-      fpMsg(`OTP galat hai. ${r.attempts_left} koshish bachi hain.`);
+      fpMsg(`Incorrect OTP. ${r.attempts_left} attempt(s) remaining.`);
     } else if (r && r.error === 'too_many_attempts'){
-      fpMsg('Bahut baar galat OTP. Naya OTP mangwaiye.');
+      fpMsg('Too many incorrect attempts. Please request a new OTP.');
     } else if (r && r.error === 'expired'){
-      fpMsg('OTP expire ho gaya ya pehle use ho chuka. Naya OTP mangwaiye.');
+      fpMsg('This OTP has expired or has already been used. Please request a new one.');
     } else if (r && r.error === 'weak_password'){
-      fpMsg('Password kam se kam 6 akshar ka ho aur usme letters aur numbers dono hon.');
+      fpMsg('Password must be at least 6 characters and contain both letters and numbers.');
     } else {
-      fpMsg('Reset nahi ho paaya. Dobara koshish kariye.');
+      fpMsg('Unable to reset your password. Please try again.');
     }
   }catch(err){
-    fpMsg('Connection error. Dobara koshish kariye.');
+    fpMsg('Connection error. Please try again.');
   }finally{
     btn.disabled = false; btn.textContent = 'Reset password';
   }
