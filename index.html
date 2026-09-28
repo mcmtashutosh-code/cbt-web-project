@@ -90,6 +90,7 @@
   .view{display:none; flex:1; flex-direction:column; padding:0 20px;}
   .view.active{display:flex;}
   .section-title{font-size:18px; font-weight:700; margin:16px 0 2px;}
+  .popup-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); box-shadow:0 10px 40px rgba(0,0,0,.35);}
   .section-sub{font-size:12.5px; color:var(--text-mute); margin:0 0 16px;}
 
   /* home menu */
@@ -1018,6 +1019,23 @@
 <div id="toast"></div>
 
 <!-- Full-screen milestone celebration (for the achieving student) -->
+<div id="email-gate" style="display:none; position:fixed; inset:0; z-index:9000; background:rgba(5,15,25,0.92); align-items:center; justify-content:center; padding:20px;">
+  <div class="popup-card" style="max-width:420px; width:100%; padding:22px;">
+    <div class="section-title" style="font-size:18px;">Add your email address</div>
+    <div class="section-sub" style="margin-bottom:14px;">An email address is required to continue. It is used to recover your password and to send your exam results.</div>
+    <input id="eg-email" type="email" autocomplete="email" placeholder="you@example.com">
+    <div class="error-text" id="eg-error" style="margin-top:8px;"></div>
+    <button class="btn btn-primary" id="btn-eg-save" style="margin-top:10px;">Save and continue</button>
+    <div style="text-align:center; margin-top:12px; font-size:13px;"><a href="#" id="link-eg-signout" style="color:var(--text-dim); text-decoration:none;">Sign out</a></div>
+  </div>
+</div>
+<div id="install-help" style="display:none; position:fixed; inset:0; z-index:9001; background:rgba(5,15,25,0.92); align-items:center; justify-content:center; padding:20px;">
+  <div class="popup-card" style="max-width:420px; width:100%; padding:22px;">
+    <div class="section-title" style="font-size:18px;">Install the app</div>
+    <div class="section-sub" id="install-help-text" style="margin:10px 0 16px; line-height:1.6;"></div>
+    <button class="btn btn-primary" id="btn-install-help-close">OK</button>
+  </div>
+</div>
 <div id="celebrate-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,15,25,0.92); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:20px;">
   <div id="celebrate-emojis" style="position:absolute; inset:0; overflow:hidden; pointer-events:none;"></div>
   <div style="position:relative; z-index:2;">
@@ -1377,6 +1395,7 @@ async function doLogin(){
     startInboxPolling();
     checkMilestonesOnLogin();
     refreshExamScheduleStatus();
+    checkEmailGate();
     if (examSchedulePollIntervalId) clearInterval(examSchedulePollIntervalId);
     examSchedulePollIntervalId = setInterval(refreshExamScheduleStatus, 30000);
   }catch(err){
@@ -3742,26 +3761,88 @@ document.getElementById('btn-fp-reset').addEventListener('click', async () => {
   }
 });
 
+/* ---------------- MANDATORY EMAIL PROMPT ---------------- */
+/* Students without an email on file must add one after signing in
+   (needed for password recovery by OTP and for emailed exam results). */
+async function checkEmailGate(){
+  if (!session) return;
+  try{
+    const p = await rpc('get_student_profile', { p_mobile: session.mobile, p_password: session.password });
+    if (p && p.ok && !String(p.email || '').trim()){
+      document.getElementById('eg-email').value = '';
+      document.getElementById('eg-error').textContent = '';
+      document.getElementById('email-gate').style.display = 'flex';
+      setTimeout(() => document.getElementById('eg-email').focus(), 50);
+    }
+  }catch(e){ /* never block sign-in on a network error */ }
+}
+document.getElementById('btn-eg-save').addEventListener('click', async () => {
+  const errEl = document.getElementById('eg-error');
+  const email = document.getElementById('eg-email').value.trim();
+  errEl.textContent = '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+    errEl.textContent = 'Please enter a valid email address.'; return;
+  }
+  const btn = document.getElementById('btn-eg-save');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try{
+    const r = await rpc('student_set_email', { p_mobile: session.mobile, p_password: session.password, p_email: email });
+    if (r && r.ok){
+      document.getElementById('email-gate').style.display = 'none';
+      toast('Thank you. Your email address has been saved.', 'ok');
+    } else if (r && r.error === 'email_taken'){
+      errEl.textContent = 'This email address is already registered with another account.';
+    } else if (r && r.error === 'invalid_email'){
+      errEl.textContent = 'Please enter a valid email address.';
+    } else {
+      errEl.textContent = 'Unable to save your email address. Please try again.';
+    }
+  }catch(e){
+    errEl.textContent = 'Connection error. Please try again.';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Save and continue';
+  }
+});
+document.getElementById('eg-email').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btn-eg-save').click();
+});
+document.getElementById('link-eg-signout').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('email-gate').style.display = 'none';
+  doLogout();
+});
+
 /* ---------------- INSTALL APP BUTTON ---------------- */
 let deferredInstall = null;
 const installBtns = ['btn-install-login', 'btn-install-home'].map(id => document.getElementById(id));
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstall = e;
-  installBtns.forEach(b => { if (b) b.style.display = 'block'; });
-});
+function setInstallButtons(show){ installBtns.forEach(b => { if (b) b.style.display = show ? 'block' : 'none'; }); }
+setInstallButtons(!isInstalledApp());
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; });
 window.addEventListener('appinstalled', () => {
   deferredInstall = null;
-  installBtns.forEach(b => { if (b) b.style.display = 'none'; });
+  setInstallButtons(false);
   toast('App installed. You can now open it from your home screen.', 'ok');
 });
+function installInstructions(){
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return 'On iPhone or iPad, open this page in <b>Safari</b>, tap the <b>Share</b> button, then choose <b>Add to Home Screen</b>.';
+  if (/android/i.test(ua)) return 'Open the browser menu (<b>⋮</b>) and tap <b>Install app</b> or <b>Add to Home screen</b>.<br><br>If you do not see this option, please open this page in <b>Google Chrome</b>. If the app is already installed, open it from your home screen.';
+  if (/firefox/i.test(ua)) return 'Firefox does not support installing web apps. Please open this page in <b>Google Chrome</b> or <b>Microsoft Edge</b> and use the install option.';
+  return 'Click the <b>install icon</b> at the right end of the address bar, or open the browser menu (<b>⋮</b>) and choose <b>Install</b>.<br><br>If the app is already installed, open it from your desktop or Start menu.';
+}
 installBtns.forEach(b => b && b.addEventListener('click', async () => {
-  if (!deferredInstall) return;
-  deferredInstall.prompt();
-  try{ await deferredInstall.userChoice; }catch(e){}
-  deferredInstall = null;
-  installBtns.forEach(x => { if (x) x.style.display = 'none'; });
+  if (deferredInstall){
+    deferredInstall.prompt();
+    try{ await deferredInstall.userChoice; }catch(e){}
+    deferredInstall = null;
+    return;
+  }
+  document.getElementById('install-help-text').innerHTML = installInstructions();
+  document.getElementById('install-help').style.display = 'flex';
 }));
+document.getElementById('btn-install-help-close').addEventListener('click', () => {
+  document.getElementById('install-help').style.display = 'none';
+});
 </script>
 </body>
 </html>
