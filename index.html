@@ -489,6 +489,12 @@
     <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
   </div>
   <!-- ============ HOME MENU ============ -->
+  <div class="view" id="view-exam-history">
+    <div class="section-title">My exam results</div>
+    <div class="section-sub">Your results in previous live exams, newest first.</div>
+    <div id="eh-list"></div>
+  </div>
+
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
@@ -506,6 +512,10 @@
       <div class="menu-card" id="menu-mock-test">
         <div class="mi">🧪</div>
         <div><div class="mt">Mock test</div><div class="ms">Build your own timed test from practice questions</div></div>
+      </div>
+      <div class="menu-card" id="menu-exam-history">
+        <div class="mi">📈</div>
+        <div><div class="mt">My exam results</div><div class="ms">Your marks in every past live exam</div></div>
       </div>
       <div class="menu-card" id="menu-challenge">
         <div class="mi">🏆</div>
@@ -2995,7 +3005,8 @@ const EX_ERROR_MESSAGES = {
   already_submitted: 'Your examination has already been submitted. Re-login is not permitted.',
   concurrent_session: 'An active examination session already exists for these credentials on another device. Please contact your administrator or invigilator.',
   no_questions: 'The question paper is empty. Please contact your administrator.',
-  no_active_session: 'No active exam session found. Please log in again.'
+  no_active_session: 'No active exam session found. Please log in again.',
+  quota_exceeded: "This exam cannot be started right now because your institute's live test limit for this billing cycle has been reached. Please contact your institute."
 };
 
 /* ---------------- LIVE EXAM SCHEDULE COUNTDOWN ---------------- */
@@ -3849,6 +3860,29 @@ installBtns.forEach(b => b && b.addEventListener('click', async () => {
 }));
 document.getElementById('btn-install-help-close').addEventListener('click', () => {
   document.getElementById('install-help').style.display = 'none';
+});
+
+/* ---------------- MY EXAM RESULTS (history) ---------------- */
+document.getElementById('menu-exam-history').addEventListener('click', async () => {
+  showView('view-exam-history');
+  const el = document.getElementById('eh-list');
+  el.innerHTML = '<p style="color:var(--text-dim);">Loading...</p>';
+  try{
+    const r = await rpc('student_exam_history', { p_mobile: session.mobile, p_password: session.password });
+    if (!r || !r.ok){ el.innerHTML = '<p style="color:var(--text-dim);">Unable to load your results. Please try again.</p>'; return; }
+    if (!r.rows.length){ el.innerHTML = '<p style="color:var(--text-dim);">No past exam results yet. Results appear here once your institute starts its next exam.</p>'; return; }
+    const esc2 = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML = r.rows.map(x => {
+      const pass = x.exam_status === 'PASS';
+      const d = x.submitted_at ? new Date(x.submitted_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+      return `<div style="background:var(--card); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+          <div style="font-weight:600;">${esc2(x.exam)}</div>
+          <span style="font-size:11px; font-weight:700; padding:3px 9px; border-radius:10px; background:${pass ? '#16a08533' : '#e74c3c33'}; color:${pass ? '#5dcaa5' : '#ff8a7d'};">${esc2(x.exam_status || '')}</span>
+        </div>
+        <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${esc2(d)} · Correct ${x.correct ?? 0}/${x.total_q ?? 0} · Wrong ${x.wrong ?? 0} · <b style="color:var(--text);">${x.final_marks ?? 0} marks</b></div>
+      </div>`; }).join('');
+  }catch(e){ el.innerHTML = '<p style="color:var(--text-dim);">Connection error. Please try again.</p>'; }
 });
 </script>
 </body>
