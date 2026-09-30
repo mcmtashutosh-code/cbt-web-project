@@ -340,6 +340,9 @@
   }
   #achieve-banner{ transform:translateY(-100%); }
   #achieve-banner.playing{ animation: achieveSlide 5s ease forwards; }
+
+  @keyframes spin360{ to{ transform:rotate(360deg); } }
+  .refreshing{ animation:spin360 .7s linear infinite; }
 </style>
 </head>
 <body>
@@ -352,6 +355,7 @@
     <div class="brandbar">
       <div class="brand-l"><span class="badge">CBT</span><span class="name">Examination Portal</span></div>
       <div style="display:flex; align-items:center; gap:10px;">
+        <button class="theme-toggle" id="btn-refresh" title="Refresh" style="display:none;">🔄</button>
         <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">🌙</button>
         <div class="who-mini" id="who-mini" style="display:none;">Logged in as<br><b id="who-mini-name">—</b></div>
       </div>
@@ -1196,6 +1200,18 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+/* ---------------- SOFT REFRESH (keeps you signed in) ----------------
+   Shown only on list pages; hidden during exams, practice and mock tests
+   so that no work in progress can be lost. */
+let currentViewId = 'view-login';
+const REFRESHABLE_VIEWS = {
+  'view-home': () => { refreshInboxBadge(); refreshExamScheduleStatus(); applyMyInstitute(); },
+  'view-exam-history': () => document.getElementById('menu-exam-history').click(),
+  'view-ch-list': () => document.getElementById('menu-challenge').click(),
+  'view-messages': () => document.getElementById('menu-messages').click(),
+  'view-prac-setup': () => document.getElementById('menu-practice').click(),
+  'view-exam-briefing': () => refreshExamScheduleStatus()
+};
 function showView(id){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1225,6 +1241,8 @@ function showView(id){
   }
 
   updateTopBack(id);
+  currentViewId = id;
+  document.getElementById('btn-refresh').style.display = (session && REFRESHABLE_VIEWS[id]) ? 'inline-flex' : 'none';
   window.scrollTo(0,0);
 }
 
@@ -3883,6 +3901,16 @@ document.getElementById('menu-exam-history').addEventListener('click', async () 
         <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${esc2(d)} · Correct ${x.correct ?? 0}/${x.total_q ?? 0} · Wrong ${x.wrong ?? 0} · <b style="color:var(--text);">${x.final_marks ?? 0} marks</b></div>
       </div>`; }).join('');
   }catch(e){ el.innerHTML = '<p style="color:var(--text-dim);">Connection error. Please try again.</p>'; }
+});
+
+document.getElementById('btn-refresh').addEventListener('click', () => {
+  const b = document.getElementById('btn-refresh');
+  const fn = REFRESHABLE_VIEWS[currentViewId];
+  if (!fn || !session || b.classList.contains('refreshing')) return;
+  b.classList.add('refreshing');
+  try{ fn(); toast('Refreshed.', 'ok'); }
+  catch(e){ toast('Unable to refresh. Please check your connection.', 'err'); }
+  finally{ setTimeout(() => b.classList.remove('refreshing'), 600); }
 });
 </script>
 </body>
