@@ -95,6 +95,20 @@
 
   /* home menu */
   .menu-grid{display:flex; flex-direction:column; gap:12px; margin-top:8px;}
+  .mr-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;}
+  .mr-h{font-size:15px; font-weight:700; margin-bottom:8px;} .mr-sub{font-size:12px; color:var(--text-dim); font-weight:400; margin-left:6px;}
+  .mr-kpis{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
+  .mr-kpis div{background:var(--field); border:1px solid var(--line-soft); border-radius:10px; padding:9px 6px; text-align:center;}
+  .mr-kpis b{display:block; font-size:16px;} .mr-kpis span{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
+  .mr-ranks{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
+  .mr-rank{background:var(--field); border:1px solid var(--line-soft); border-radius:10px; padding:9px 6px; text-align:center;}
+  .mr-rank span{display:block; font-size:11px; color:var(--text-dim);} .mr-rank b{display:block; font-size:18px; color:var(--accent-text); margin:2px 0;}
+  .mr-rank small{font-size:10.5px; color:var(--text-dim);}
+  .mr-note{font-size:11.5px; color:var(--text-dim); margin-top:8px;} .mr-empty{color:var(--text-dim); font-size:13px; margin:6px 0;}
+  .mr-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .mr-table th{color:var(--text-dim); text-align:left; font-size:11px; padding:6px 5px; font-weight:600;}
+  .mr-table td{padding:6px 5px; border-top:1px solid var(--line-soft); white-space:nowrap;}
+  @media (max-width:520px){ .mr-kpis, .mr-ranks{grid-template-columns:repeat(2, 1fr);} }
   .menu-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; cursor:pointer; display:flex; align-items:center; gap:14px;}
   .menu-card:hover{border-color:var(--accent);}
   .menu-card.disabled{opacity:.5; cursor:default;}
@@ -493,6 +507,12 @@
     <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
   </div>
   <!-- ============ HOME MENU ============ -->
+  <div class="view" id="view-my-report">
+    <div class="section-title">My report card</div>
+    <div class="section-sub">Only you can see this report.</div>
+    <div id="mr-out"></div>
+  </div>
+
   <div class="view" id="view-exam-history">
     <div class="section-title">My exam results</div>
     <div class="section-sub">Your results in previous live exams, newest first.</div>
@@ -516,6 +536,10 @@
       <div class="menu-card" id="menu-mock-test">
         <div class="mi">🧪</div>
         <div><div class="mt">Mock test</div><div class="ms">Build your own timed test from practice questions</div></div>
+      </div>
+      <div class="menu-card" id="menu-my-report">
+        <div class="mi">📊</div>
+        <div><div class="mt">My report card</div><div class="ms">Your performance, subject-wise results and rank</div></div>
       </div>
       <div class="menu-card" id="menu-exam-history">
         <div class="mi">📈</div>
@@ -1207,6 +1231,7 @@ let currentViewId = 'view-login';
 const REFRESHABLE_VIEWS = {
   'view-home': () => { refreshInboxBadge(); refreshExamScheduleStatus(); applyMyInstitute(); },
   'view-exam-history': () => document.getElementById('menu-exam-history').click(),
+  'view-my-report': () => document.getElementById('menu-my-report').click(),
   'view-ch-list': () => document.getElementById('menu-challenge').click(),
   'view-messages': () => document.getElementById('menu-messages').click(),
   'view-prac-setup': () => document.getElementById('menu-practice').click(),
@@ -1246,7 +1271,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-exam-history','view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
+const HOME_ADJACENT = new Set(['view-my-report','view-exam-history','view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
 
 /* ---------------- REGISTER ---------------- */
 document.getElementById('link-go-register').addEventListener('click', (e) => {
@@ -3912,6 +3937,92 @@ document.getElementById('btn-refresh').addEventListener('click', () => {
   catch(e){ toast('Unable to refresh. Please check your connection.', 'err'); }
   finally{ setTimeout(() => b.classList.remove('refreshing'), 600); }
 });
+
+/* ---------------- MY REPORT CARD (own records only) ---------------- */
+let myRep = null;
+const mrEsc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const mrPct = v => (v === null || v === undefined) ? '—' : `${v}%`;
+const mrVal = v => (v === null || v === undefined || v === '') ? '—' : String(v);
+const mrDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+function mrTable(head, rows){
+  return `<div style="overflow-x:auto;"><table class="mr-table"><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
+}
+function mrRank(x, label, rule){
+  if (!x) return `<div class="mr-rank"><span>${label}</span><b>—</b><small>${rule}</small></div>`;
+  const medal = x.rank === 1 ? '🥇 ' : x.rank === 2 ? '🥈 ' : x.rank === 3 ? '🥉 ' : '';
+  return `<div class="mr-rank"><span>${label}</span><b>${medal}#${x.rank}</b><small>of ${x.of} student${x.of === 1 ? '' : 's'}</small></div>`;
+}
+document.getElementById('menu-my-report').addEventListener('click', async () => {
+  showView('view-my-report');
+  const el = document.getElementById('mr-out');
+  el.innerHTML = '<p style="color:var(--text-dim);">Loading your report…</p>';
+  try{
+    const r = await rpc('student_my_report', { p_mobile: session.mobile, p_password: session.password });
+    if (!r || !r.ok){ el.innerHTML = '<p style="color:var(--text-dim);">Unable to load your report. Please try again.</p>'; return; }
+    myRep = r; mrRender();
+  }catch(_e){ el.innerHTML = '<p style="color:var(--text-dim);">Connection error. Please try again.</p>'; }
+});
+function mrRender(){
+  const r = myRep, L = r.live || {}, M = r.mock || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {}, rules = r.rank_rules || {};
+  document.getElementById('mr-out').innerHTML = `
+    <div class="mr-card">
+      <div class="mr-kpis">
+        <div><b>${L.count || 0}</b><span>Live tests</span></div>
+        <div><b>${mrVal(L.avg_marks)}</b><span>Avg live marks</span></div>
+        <div><b>${mrPct(L.avg_pct)}</b><span>Avg live score</span></div>
+        <div><b>${M.count || 0}</b><span>Mock tests</span></div>
+        <div><b>${mrPct(M.avg_pct)}</b><span>Avg mock score</span></div>
+        <div><b>${P.questions || 0}</b><span>Practice questions</span></div>
+        <div><b>${mrPct(P.accuracy)}</b><span>Practice accuracy</span></div>
+        <div><b>${C.points || 0}</b><span>Challenge points</span></div>
+      </div>
+    </div>
+    <div class="mr-card"><div class="mr-h">🏅 My rank in ${mrEsc(r.institute || 'my institute')}</div>
+      <div class="mr-ranks">${mrRank(R.live, 'Live tests', 'after your first live test')}${mrRank(R.mock, 'Mock tests', `after ${rules.mock_min || 2} mock tests`)}
+        ${mrRank(R.practice, 'Practice', `after ${rules.practice_min || 50} questions`)}${mrRank(R.challenge, 'Daily challenge', 'after your first points')}</div>
+      <div class="mr-note">Only your own rank is shown. Other students' names and marks are private.</div></div>
+
+    <div class="mr-card"><div class="mr-h">📝 Live tests <span class="mr-sub">${L.count || 0} taken · ${L.passed || 0} passed · best ${mrPct(L.best_pct)}</span></div>
+      ${(L.rows || []).length ? mrTable(['Exam', 'Date', 'Marks', 'Correct', 'Score', 'Result'], L.rows.map(x =>
+        `<tr><td>${mrEsc(x.exam)}</td><td>${mrDate(x.at)}</td><td><b>${mrVal(x.marks)}</b></td><td>${x.correct}/${x.total_q}</td><td>${mrPct(x.pct)}</td>
+         <td style="color:${x.status === 'PASS' ? '#5dcaa5' : '#ff8a7d'}; font-weight:700;">${mrEsc(x.status || '')}</td></tr>`)) : '<p class="mr-empty">No live tests yet.</p>'}</div>
+
+    <div class="mr-card"><div class="mr-h">🧪 Mock tests <span class="mr-sub">${M.count || 0} taken · ${M.questions || 0} questions · ${M.correct || 0} correct</span></div>
+      ${(r.mock_subjects || []).length ? mrTable(['Subject', 'Questions', 'Attempted', 'Correct', 'Score'],
+        r.mock_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td><b>${mrPct(x.pct)}</b></td></tr>`)) : '<p class="mr-empty">No mock tests yet.</p>'}</div>
+
+    <div class="mr-card"><div class="mr-h">📚 Practice <span class="mr-sub">${P.sessions || 0} sessions · ${P.attempted || 0} attempted · ${P.correct || 0} correct</span></div>
+      ${(r.practice_subjects || []).length ? mrTable(['Subject', 'Questions', 'Attempted', 'Correct', 'Accuracy'],
+        r.practice_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td><b>${mrPct(x.accuracy)}</b></td></tr>`)) : '<p class="mr-empty">No practice yet.</p>'}</div>
+
+    <div class="mr-card"><div class="mr-h">🎯 Daily challenge <span class="mr-sub">${C.points || 0} points · ${C.done || 0} challenges</span></div>
+      ${Object.keys(C.topics || {}).length ? mrTable(['Topic', 'Points'], Object.entries(C.topics).sort((a, b) => b[1] - a[1]).map(([t, p]) => `<tr><td>${mrEsc(t)}</td><td><b>${p}</b></td></tr>`))
+        : '<p class="mr-empty">No challenge points yet.</p>'}</div>
+
+    <button class="btn btn-ghost" id="mr-print" type="button" style="margin-top:10px;">🖨 Print / save my report card</button>`;
+  document.getElementById('mr-print').addEventListener('click', mrPrint);
+}
+function mrPrint(){
+  const r = myRep, s = r.student || {}, L = r.live || {}, M = r.mock || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {};
+  const t = (h, rows) => `<table><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.join('')}</table>`;
+  const rk = x => x ? `#${x.rank} of ${x.of}` : '—';
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report card — ${mrEsc(s.name)}</title><style>
+    @page{ size:A4; margin:14mm; } body{ font-family:Arial, sans-serif; color:#1b2a41; font-size:12px; }
+    h1{ font-size:19px; margin:0; } h2{ font-size:14px; margin:16px 0 6px; } .sub{ color:#666; }
+    .k{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:12px 0; } .k div{ border:1px solid #dfe5ee; border-radius:8px; padding:8px; text-align:center; } .k b{ display:block; font-size:16px; }
+    table{ width:100%; border-collapse:collapse; } th{ background:#1b2a41; color:#fff; padding:5px; text-align:left; font-size:11px; } td{ padding:5px; border-bottom:1px solid #e3e7ee; }
+    tr{ page-break-inside:avoid; }</style></head><body>
+    <h1>${mrEsc(r.institute || '')} — Student report card</h1>
+    <div class="sub">${mrEsc(s.name)} · ${mrEsc(s.mobile)}${s.class_name ? ' · ' + mrEsc(s.class_name) : ''} · generated ${mrEsc(new Date().toLocaleString('en-IN'))}</div>
+    <div class="k"><div>Live tests<b>${L.count || 0}</b>avg ${mrPct(L.avg_pct)} · rank ${rk(R.live)}</div><div>Mock tests<b>${M.count || 0}</b>avg ${mrPct(M.avg_pct)} · rank ${rk(R.mock)}</div>
+      <div>Practice<b>${P.questions || 0} Qs</b>${mrPct(P.accuracy)} · rank ${rk(R.practice)}</div><div>Challenge<b>${C.points || 0} pts</b>rank ${rk(R.challenge)}</div></div>
+    <h2>Live tests</h2>${(L.rows || []).length ? t(['Exam', 'Date', 'Marks', 'Correct', 'Score', 'Result'], L.rows.map(x => `<tr><td>${mrEsc(x.exam)}</td><td>${mrDate(x.at)}</td><td>${mrVal(x.marks)}</td><td>${x.correct}/${x.total_q}</td><td>${mrPct(x.pct)}</td><td>${mrEsc(x.status || '')}</td></tr>`)) : '<p>None.</p>'}
+    <h2>Mock tests — subject-wise</h2>${(r.mock_subjects || []).length ? t(['Subject', 'Questions', 'Correct', 'Score'], r.mock_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.correct}</td><td>${mrPct(x.pct)}</td></tr>`)) : '<p>None.</p>'}
+    <h2>Practice — subject-wise</h2>${(r.practice_subjects || []).length ? t(['Subject', 'Questions', 'Attempted', 'Correct', 'Accuracy'], r.practice_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td>${mrPct(x.accuracy)}</td></tr>`)) : '<p>None.</p>'}
+    </body></html>`;
+  const w = window.open('', '_blank'); if (!w){ toast('Please allow pop-ups to print.'); return; }
+  w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+}
 </script>
 </body>
 </html>
