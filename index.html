@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>CBT Examination Portal</title>
+<title>Online Examination Portal</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#16a085">
 <link rel="apple-touch-icon" href="student-icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CBT Portal">
+<meta name="apple-mobile-web-app-title" content="Exam Portal">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -95,6 +95,17 @@
 
   /* home menu */
   .menu-grid{display:flex; flex-direction:column; gap:12px; margin-top:8px;}
+  /* scrolling announcement banner */
+  .tkr{display:flex; align-items:center; gap:8px; background:linear-gradient(90deg, #138a72, #16a085); color:#fff; border-radius:12px; padding:8px 10px; margin:10px 0 12px; cursor:pointer; overflow:hidden;}
+  .tkr .tk-ic{flex:none; font-size:16px;}
+  .tkr .tk-vp{flex:1; overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); mask-image:linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);}
+  .tkr .tk-tx{display:inline-block; padding-left:100%; font-size:13.5px; font-weight:600; animation:tkmove var(--tkdur, 18s) linear infinite;}
+  .tkr.paused .tk-tx{animation-play-state:paused;}
+  .tkr.open .tk-vp{white-space:normal; -webkit-mask-image:none; mask-image:none;}
+  .tkr.open .tk-tx{animation:none; padding-left:0; display:block; line-height:1.5;}
+  .tkr .tk-x{flex:none; background:transparent; border:0; color:#fff; font-size:16px; cursor:pointer; padding:0 2px; opacity:.85;}
+  @keyframes tkmove{from{transform:translateX(0);} to{transform:translateX(-100%);}}
+  @media (prefers-reduced-motion: reduce){ .tkr .tk-tx{animation:none; padding-left:0;} .tkr .tk-vp{white-space:normal; -webkit-mask-image:none; mask-image:none;} }
   .mr-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;}
   .mr-h{font-size:15px; font-weight:700; margin-bottom:8px;} .mr-sub{font-size:12px; color:var(--text-dim); font-weight:400; margin-left:6px;}
   .mr-kpis{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
@@ -433,7 +444,7 @@
         New here? <a href="#" id="link-go-register" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Register here</a>
       </div>
     </div>
-    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
   <!-- ============ REGISTER ============ -->
@@ -491,7 +502,7 @@
         Already registered? <a href="#" id="link-go-login" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Sign in</a>
       </div>
     </div>
-    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
   <!-- ============ PENDING APPROVAL ============ -->
@@ -504,7 +515,7 @@
       <p style="margin-top:14px; font-size:13px; color:var(--text-mute);">Please check back later, or contact your administrator for updates.</p>
       <button class="btn btn-ghost" id="btn-pending-back" style="margin-top:18px;">← Back to sign in</button>
     </div>
-    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
   <!-- ============ HOME MENU ============ -->
   <div class="view" id="view-my-report">
@@ -522,6 +533,7 @@
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
+    <div id="stu-tkr"></div>
     <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:10px;">📤 Share this app</button>
     <button class="btn btn-ghost" id="btn-install-home" style="display:none; margin-bottom:16px;">📲 Install app</button>
     <div class="menu-grid">
@@ -566,7 +578,7 @@
         <div><div class="mt">My profile</div><div class="ms">Email, class, semester/year, university</div></div>
       </div>
     </div>
-    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
   <!-- ============ FEEDBACK ============ -->
@@ -908,7 +920,7 @@
     <div class="section-title">Today's challenges</div>
     <div class="section-sub">Answer fast for more points — max 5 points per question.</div>
     <div id="challenge-list"><div class="spin"></div></div>
-    <div class="footer"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
   <!-- ============ CHALLENGE: LEADERBOARD ============ -->
@@ -1033,7 +1045,7 @@
       <button class="btn btn-ghost" id="ex-btn-result-home" style="margin-bottom:22px;">Back to home</button>
     </div>
 
-    <div class="footer no-print"><span class="lock">Secured by CBT Assessment Platform</span> · Cloud-hosted<br>© 2025 Ashutosh Dubey · All Rights Reserved</div>
+    <div class="footer no-print"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
   <!-- ============ LIVE EXAM: REVIEW ============ -->
@@ -1229,7 +1241,7 @@ document.addEventListener('visibilitychange', () => {
    so that no work in progress can be lost. */
 let currentViewId = 'view-login';
 const REFRESHABLE_VIEWS = {
-  'view-home': () => { refreshInboxBadge(); refreshExamScheduleStatus(); applyMyInstitute(); },
+  'view-home': () => { refreshInboxBadge(); refreshExamScheduleStatus(); applyMyInstitute(); loadStudentBanners(true); },
   'view-exam-history': () => document.getElementById('menu-exam-history').click(),
   'view-my-report': () => document.getElementById('menu-my-report').click(),
   'view-ch-list': () => document.getElementById('menu-challenge').click(),
@@ -1489,7 +1501,7 @@ document.getElementById('btn-share-app').addEventListener('click', async () => {
     return;
   }
   const shareData = {
-    title: instLabel + ' — CBT Examination Portal',
+    title: instLabel + ' — Online Examination Portal',
     text: 'Practice, take exams, and track your progress on ' + instLabel + '. Join here:',
     url: shareUrl
   };
@@ -3662,7 +3674,7 @@ function applyInstituteBrand(name){
   if (!name) return;
   const el = document.querySelector('.brandbar .name');
   if (el) el.textContent = name;
-  document.title = name + ' — CBT Examination Portal';
+  document.title = name + ' — Online Examination Portal';
 }
 /* Apply institute logo and brand colour (only when configured by the super admin) */
 function applyInstituteTheme(info){
@@ -4032,6 +4044,44 @@ function mrPrint(){
   const w = window.open('', '_blank'); if (!w){ toast('Please allow pop-ups to print.'); return; }
   w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
 }
+
+/* ---------------- SCROLLING ANNOUNCEMENT BANNER ----------------
+   Tap: pause and show the whole message; tap again: continue. */
+function renderTicker(holder, items, opts){
+  opts = opts || {};
+  holder.innerHTML = '';
+  if (!items || !items.length) return;
+  const esc0 = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const text = items.map(x => esc0(x.message)).join('&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;');
+  const plain = items.map(x => x.message).join('   •   ');
+  const el = document.createElement('div');
+  el.className = 'tkr'; el.setAttribute('role', 'status');
+  el.title = 'Tap to read the whole message';
+  el.innerHTML = `<span class="tk-ic">${opts.icon || '📢'}</span><div class="tk-vp"><span class="tk-tx">${opts.prefix ? '<b>' + esc0(opts.prefix) + '</b>&nbsp; ' : ''}${text}</span></div>`
+    + (opts.onClose ? '<button class="tk-x" type="button" aria-label="Hide for today">×</button>' : '');
+  el.style.setProperty('--tkdur', Math.max(12, Math.min(60, Math.round(plain.length / 5))) + 's');
+  el.addEventListener('click', (e) => {
+    if (e.target.closest('.tk-x')){ e.stopPropagation(); opts.onClose(); return; }
+    el.classList.toggle('open');
+  });
+  holder.appendChild(el);
+}
+
+let stuBannerAt = 0;
+async function loadStudentBanners(force){
+  if (typeof session === 'undefined' || !session || !session.mobile) return;
+  if (!force && Date.now() - stuBannerAt < 60000) return;
+  stuBannerAt = Date.now();
+  try{
+    const r = await rpc('student_banners', { p_mobile: session.mobile, p_password: session.password });
+    renderTicker(document.getElementById('stu-tkr'), r && r.ok ? r.banners : []);
+  }catch(_e){}
+}
+// Show the banner whenever the home screen opens (checked at most once a minute)
+(function(){
+  const _show = showView;
+  showView = function(id){ const out = _show.apply(this, arguments); if (id === 'view-home') loadStudentBanners(false); return out; };
+})();
 </script>
 </body>
 </html>
