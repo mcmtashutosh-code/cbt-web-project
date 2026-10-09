@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Verify payment receipt — Vidyapath CBT</title>
+<title>Verify payment receipt — Dhyeodaya</title>
 <style>
   :root{ --ink:#1b2a41; --dim:#6b7686; --line:#e3e7ee; --teal:#16a085; --bg:#f4f6f9; }
   *{ box-sizing:border-box; }
@@ -93,11 +93,11 @@ async function check(no, code){
       ? `<div class="banner warn">↺ Genuine receipt — the payment was fully REFUNDED${r.refund_date ? ' on ' + dmy(r.refund_date) : ''}.</div>`
     : r.status === 'partially_refunded'
       ? `<div class="banner warn">↺ Genuine receipt — ${inr(r.refund_amount)} was refunded${r.refund_date ? ' on ' + dmy(r.refund_date) : ''}.</div>`
-      : `<div class="banner ok">✔ Genuine receipt — verified against the records of ${esc(iss.name || 'Vidyapath CBT Platform')}.</div>`;
+      : `<div class="banner ok">✔ Genuine receipt — verified against the records of ${esc(iss.name || 'Dhyeodaya')}.</div>`;
   const months = r.period_months ? `${r.period_months} month${r.period_months > 1 ? 's' : ''}` : '';
   document.getElementById('out').innerHTML = `
     <div class="head">
-      <div><h1>${esc(iss.name || 'Vidyapath CBT Platform')}</h1>
+      <div><h1>${esc(iss.name || 'Dhyeodaya')}</h1>
         <div style="font-size:12px; opacity:.85; margin-top:4px;">${esc([iss.address, iss.phone, iss.email].filter(Boolean).join(' · '))}${iss.gstin ? ' · GSTIN ' + esc(iss.gstin) : ''}</div></div>
       <div><div class="t">PAYMENT RECEIPT</div><div class="no">${esc(r.receipt_no)}<br>Date: ${dmy(r.issued_at)}</div></div>
     </div>
@@ -109,7 +109,7 @@ async function check(no, code){
       </div>
       <table>
         <tr><th>Description</th><th>Subscription period</th><th class="r">Amount</th></tr>
-        <tr><td><b>${esc(r.plan || 'Subscription')} plan</b><br><span style="font-size:12px; color:var(--dim);">Vidyapath CBT platform access${months ? ' · ' + months : ''}</span></td>
+        <tr><td><b>${esc(r.plan || 'Subscription')} plan</b><br><span style="font-size:12px; color:var(--dim);">Dhyeodaya platform access${months ? ' · ' + months : ''}</span></td>
             <td>${r.valid_from ? dmy(r.valid_from) + ' to ' + dmy(r.valid_until) : '—'}</td>
             <td class="r"><b>${inr(r.amount)}</b></td></tr>
         <tr><td></td><td class="r" style="color:var(--dim);">Total received</td><td class="r total">${inr(r.amount)}</td></tr>
@@ -121,7 +121,7 @@ async function check(no, code){
       <span>${esc(iss.note || 'This is a computer-generated receipt and does not require a physical signature.')}</span>
       <button class="btn noprint" onclick="window.print()">🖨 Print / Save as PDF</button>
     </div>`;
-  document.title = `Receipt ${r.receipt_no} — ${iss.name || 'Vidyapath CBT'}`;
+  document.title = `Receipt ${r.receipt_no} — ${iss.name || 'Dhyeodaya'}`;
 }
 
 const q = new URLSearchParams(location.search);
