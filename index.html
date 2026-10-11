@@ -1135,7 +1135,7 @@ function toast(msg, kind){
   clearTimeout(toast._t);
   toast._t = setTimeout(() => el.classList.remove('show'), 3000);
 }
-function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }   // safe in text AND in quoted attributes
 
 async function rpc(fn, body){
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -2010,7 +2010,7 @@ function updateAvailNote(){
     Object.values(topics).forEach(levels => {
       subjectTotal += Object.values(levels).reduce((a,b) => a+b, 0);
     });
-    note.textContent = `${esc(sub)}: ${subjectTotal} question${subjectTotal === 1 ? '' : 's'} available across all topics`;
+    note.textContent = `${sub}: ${subjectTotal} question${subjectTotal === 1 ? '' : 's'} available across all topics`;
     return;
   }
   const levels = subjectsData[sub] && subjectsData[sub][top] ? subjectsData[sub][top] : {};
@@ -3202,10 +3202,10 @@ async function startExamFlow(){
 function renderExamDetailCards(r){
   const grid = document.getElementById('ex-detail-grid');
   const totalQ = r.total_q || (r.questions ? r.questions.length : 0);
-  const duration = r.duration_minutes != null ? `${r.duration_minutes} Minutes` : '—';
-  const marksCorrect = r.marks_correct != null ? `+${r.marks_correct}` : '—';
-  const marksWrong = (r.marks_wrong != null && r.marks_wrong > 0) ? `−${r.marks_wrong}` : 'None';
-  const passing = (r.passing_value != null && r.passing_type) ? `${r.passing_value} ${r.passing_type}` : '—';
+  const duration = r.duration_minutes != null ? `${esc(r.duration_minutes)} Minutes` : '—';
+  const marksCorrect = r.marks_correct != null ? `+${esc(r.marks_correct)}` : '—';
+  const marksWrong = (r.marks_wrong != null && r.marks_wrong > 0) ? `−${esc(r.marks_wrong)}` : 'None';
+  const passing = (r.passing_value != null && r.passing_type) ? `${esc(r.passing_value)} ${esc(r.passing_type)}` : '—';
 
   const sections = r.sections || {};
   const secKeys = Object.keys(sections);
