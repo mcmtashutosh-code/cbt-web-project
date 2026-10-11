@@ -1249,9 +1249,69 @@ const REFRESHABLE_VIEWS = {
   'view-prac-setup': () => document.getElementById('menu-practice').click(),
   'view-exam-briefing': () => refreshExamScheduleStatus()
 };
+/* Admin test ID: a clear strip so it is never mistaken for a real student */
+function showTestIdStrip(on){
+  let el = document.getElementById('test-id-strip');
+  if (!on){ if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement('div');
+  el.id = 'test-id-strip';
+  el.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:9000; background:#b9770e; color:#fff; text-align:center; font-size:12px; font-weight:700; padding:4px 8px; pointer-events:none; letter-spacing:.3px;';
+  el.textContent = '🧪 ADMIN TEST ID — marks are not counted in results or leaderboards';
+  document.body.appendChild(el);
+}
+
+/* ---------------- NEW VERSION CHECK ----------------
+   When a new file is uploaded, students see "Update available" — but ONLY on
+   safe screens (sign-in, home, reports, profile …). Never during a live exam,
+   practice, mock test, challenge or on a result screen; the update waits. */
+const APP_VERSION = '2026-10-11.2';
+const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
+  'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
+let updAvailable = false, updDismissed = false;
+function updViewIsSafe(){
+  const v = document.querySelector('.view.active');
+  return !!v && UPD_SAFE_VIEWS.includes(v.id);
+}
+async function checkForUpdate(){
+  if (updAvailable) return;
+  try{
+    const res = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const m = (await res.text()).match(/const APP_VERSION = '([^']+)'/);
+    if (m && m[1] !== APP_VERSION){ updAvailable = true; syncUpdateBanner(); }
+  }catch(_e){}
+}
+function syncUpdateBanner(){
+  let d = document.getElementById('upd-banner');
+  if (!updAvailable || updDismissed || !updViewIsSafe()){ if (d) d.remove(); return; }
+  if (d) return;
+  d = document.createElement('div');
+  d.id = 'upd-banner';
+  d.style.cssText = 'position:fixed; left:50%; transform:translateX(-50%); top:max(10px, env(safe-area-inset-top, 0px)); z-index:9999; background:#11203a; color:#fff; border:1px solid #16a085; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center; box-shadow:0 8px 24px rgba(0,0,0,.35); width:min(440px, calc(100% - 20px)); box-sizing:border-box; font-size:13.5px;';
+  d.innerHTML = '<span style="flex:1;">🆕 A new version of the app is available.</span>'
+    + '<button type="button" data-u="go" style="background:#16a085; color:#06231e; border:0; border-radius:8px; padding:7px 12px; font-weight:700; cursor:pointer;">Update now</button>'
+    + '<button type="button" data-u="later" style="background:transparent; color:#aab7b8; border:0; cursor:pointer;">Later</button>';
+  d.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-u]'); if (!b) return;
+    if (b.dataset.u === 'later'){ updDismissed = true; d.remove(); return; }
+    if (!updViewIsSafe()){ d.remove(); return; }        // safety: never reload during a test
+    if (!session || confirm('Load the new version now?\n\nYou will need to sign in again.')){
+      const u = new URL(location.href); u.searchParams.set('v', Date.now()); location.replace(u.toString());
+    }
+  });
+  document.body.appendChild(d);
+}
+setInterval(checkForUpdate, 30 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+setTimeout(checkForUpdate, 5000);
+
 function showView(id){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  syncUpdateBanner();
+  const tidStrip = document.getElementById('test-id-strip');
+  if (tidStrip) tidStrip.style.display = ['view-exam-taking', 'view-prac-exam', 'view-mock-exam'].includes(id) ? 'none' : 'block';
 
   const isExamTaking = (id === 'view-exam-taking');
   const isExamResultLike = (id === 'view-exam-result' || id === 'view-exam-review');
@@ -3733,6 +3793,7 @@ async function applyMyInstitute(){
       try{ localStorage.setItem('cbt_join_key', session.join_key); }catch(e){}
       applyInstituteBrand(r.short_name || r.name);
       applyInstituteTheme(r);
+      showTestIdStrip(!!r.is_test);
     }
   }catch(e){ /* theme optional */ }
 }
@@ -3870,6 +3931,9 @@ async function checkEmailGate(){
   try{
     const p = await rpc('get_student_profile', { p_mobile: session.mobile, p_password: session.password });
     if (p && p.ok && !String(p.email || '').trim()){
+      // The admin test ID does not need an email address
+      const mi = await rpc('get_my_institute', { p_mobile: session.mobile, p_password: session.password }).catch(() => null);
+      if (mi && mi.is_test) return;
       document.getElementById('eg-email').value = '';
       document.getElementById('eg-error').textContent = '';
       document.getElementById('email-gate').style.display = 'flex';
