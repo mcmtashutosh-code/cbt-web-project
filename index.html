@@ -3164,27 +3164,31 @@ async function startExamFlow(){
   }
   toast('Loading examination...', '');
   try{
-    const r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
+    // Instructions only READ the exam details. The exam starts (and is counted) on "Start examination".
+    let r, preStarted = false;
+    try{
+      r = await rpc('get_exam_briefing', { p_mobile: session.mobile, p_password: session.password });
+    }catch(_e){
+      // Older database without get_exam_briefing: fall back to starting here, as before
+      r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
+      preStarted = true;
+    }
     if (r.error){
       toast(EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.', 'err');
       return;
     }
-    exQuestions = r.questions;
-    exAnswers = r.answers;
-    exStatuses = r.status;
-    exCurIndex = r.current_index || 0;
-    exTimeLeft = r.time_left;
-
-    buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
+    exStartData = preStarted ? r : null;
 
     document.getElementById('ex-resume-banner-wrap').style.display = 'none';
     if (r.resume){
-      const answeredCount = exAnswers.filter(a => a !== -1).length;
-      const m = Math.floor(exTimeLeft/60), s = exTimeLeft%60;
+      const answeredCount = preStarted ? r.answers.filter(a => a !== -1).length : (r.answered || 0);
+      const totalCount = preStarted ? r.answers.length : (r.total_q || 0);
+      const tl = r.time_left || 0, resumeAt = (r.current_index || 0);
+      const m = Math.floor(tl/60), s = tl%60;
       document.getElementById('ex-resume-banner-wrap').style.display = 'block';
       document.getElementById('ex-resume-banner').textContent =
-        `Your previous session has been restored: ${answeredCount}/${exAnswers.length} question(s) answered, ` +
-        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining. You will resume from question ${exCurIndex+1}.`;
+        `Your previous session will be restored: ${answeredCount}/${totalCount} question(s) answered, ` +
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining. You will resume from question ${resumeAt+1}.`;
     }
     document.getElementById('ex-chk-ready').checked = false;
     document.getElementById('ex-btn-start-exam').disabled = true;
@@ -3197,7 +3201,7 @@ async function startExamFlow(){
 
 function renderExamDetailCards(r){
   const grid = document.getElementById('ex-detail-grid');
-  const totalQ = r.total_q || exQuestions.length;
+  const totalQ = r.total_q || (r.questions ? r.questions.length : 0);
   const duration = r.duration_minutes != null ? `${r.duration_minutes} Minutes` : '—';
   const marksCorrect = r.marks_correct != null ? `+${r.marks_correct}` : '—';
   const marksWrong = (r.marks_wrong != null && r.marks_wrong > 0) ? `−${r.marks_wrong}` : 'None';
@@ -3222,8 +3226,32 @@ document.getElementById('ex-chk-ready').addEventListener('change', (e) => {
 });
 document.getElementById('ex-btn-start-exam').addEventListener('click', beginExam);
 
-function beginExam(){
+let exStartData = null, exStarting = false;
+async function beginExam(){
+  if (exStarting || !session) return;
   try{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){}
+  const btn = document.getElementById('ex-btn-start-exam');
+  exStarting = true; btn.disabled = true; btn.textContent = 'Starting...';
+  let r = exStartData;
+  try{
+    if (!r) r = await rpc('start_or_resume_exam', { p_mobile: session.mobile, p_password: session.password });
+  }catch(err){
+    r = null;
+  }
+  exStarting = false; btn.textContent = 'Start examination';
+  if (!r || r.error){
+    btn.disabled = !document.getElementById('ex-chk-ready').checked;
+    try{ if (document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+    toast(r ? (EX_ERROR_MESSAGES[r.error] || 'Unable to start the examination.') : 'Connection error. Please check your internet and try again.', 'err');
+    return;
+  }
+  exStartData = null;
+  exQuestions = r.questions;
+  exAnswers = r.answers;
+  exStatuses = r.status;
+  exCurIndex = r.current_index || 0;
+  exTimeLeft = r.time_left;          // the timer starts below, when the first question is shown
+  buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
   exExamActive = true;
   showView('view-exam-taking');
   renderExamQuestion();
