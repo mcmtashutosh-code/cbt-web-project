@@ -305,6 +305,11 @@
   .ex-pnode.st3{background:var(--purple);}
   .ex-pnode.current{border-color:#fff;}
   .ex-pnode.locked{opacity:.28; cursor:not-allowed;}
+  .ex-sec-table{width:100%; border-collapse:collapse; margin-top:8px; font-size:13px;}
+  .ex-sec-table th{font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-mute); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line-soft);}
+  .ex-sec-table td{padding:7px 8px; border-bottom:1px solid var(--line-soft); font-weight:600;}
+  .ex-sec-table .r{text-align:right;}
+  .ex-sec-table tfoot td{border-bottom:0; color:var(--accent-text); font-weight:800;}
   /* Exam: text size (A− / A+) and figures that fit the screen; tap a figure to enlarge */
   #view-exam-taking{--exz:1;}
   #view-exam-taking .qtext{font-size:calc(15.5px * var(--exz));}
@@ -1302,7 +1307,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.2';
+const APP_VERSION = '2026-10-12.3';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3309,7 +3314,14 @@ function renderExamDetailCards(r){
   const secKeys = Object.keys(sections);
   const secDist = secKeys.length ? secKeys.map(k => `${k}: ${sections[k]} Q`).join(' · ') : 'General';
   const secTiming = (r.section_timing && r.section_timing.length) ? r.section_timing
-    : (r.section_plan && r.section_plan.length ? r.section_plan.map(p => ({ section: p.section, minutes: Math.round(p.seconds / 60) })) : null);
+    : (r.section_plan && r.section_plan.length ? r.section_plan.map(p => ({ section: p.section, minutes: Math.round(p.seconds / 60), count: p.count })) : null);
+  // one row per section: in the timing order when there is sectional timing
+  const realQ = r.section_counts || null;   // real number of questions per section (never more than available)
+  const qOf = sec => realQ && realQ[sec] != null ? realQ[sec] : (sections[sec] != null ? sections[sec] : null);
+  const secRows = secTiming
+    ? secTiming.map(t => ({ section: t.section, min: t.minutes, q: t.count != null ? t.count : qOf(t.section) }))
+    : (realQ ? Object.keys(realQ).map(k => ({ section: k, q: realQ[k] }))
+       : (secKeys.length ? secKeys.map(k => ({ section: k, q: sections[k] })) : [{ section: 'General', q: totalQ }]));
 
   grid.innerHTML = `
     <div class="ex-detail-card"><div class="edi">📋</div><div class="edl">Total Questions</div><div class="edv">${totalQ}</div></div>
@@ -3317,10 +3329,14 @@ function renderExamDetailCards(r){
     <div class="ex-detail-card"><div class="edi">✔</div><div class="edl">Correct Marks</div><div class="edv" style="color:#27ae60;">${marksCorrect}</div></div>
     <div class="ex-detail-card"><div class="edi">✖</div><div class="edl">Negative Marks</div><div class="edv" style="color:var(--danger);">${marksWrong}</div></div>
     <div class="ex-detail-card full"><div class="edi">🎯</div><div class="edl">Passing Criteria</div><div class="edv">${passing}</div></div>
-    <div class="ex-detail-card full"><div class="edi">📂</div><div class="edl">Section-wise Questions</div><div class="edv" style="font-size:12.5px;">${esc(secDist)}</div></div>
-    ${secTiming ? `<div class="ex-detail-card full" style="border-color:var(--warn);"><div class="edi">⏳</div><div class="edl">Sectional timing (in this order)</div>
-      <div class="edv" style="font-size:12.5px;">${secTiming.map(t => `${esc(t.section)}: ${esc(t.minutes)} min`).join(' → ')}</div>
-      <div style="font-size:11.5px; color:var(--text-mute); margin-top:6px; line-height:1.5;">Each section has its own time. You can move to the next section only when the current section's time ends; then the next section opens automatically and the finished section is closed (you cannot go back to it).</div></div>` : ''}
+    <div class="ex-detail-card full"${secTiming ? ' style="border-color:var(--warn);"' : ''}><div class="edi">${secTiming ? '⏳' : '📂'}</div>
+      <div class="edl">${secTiming ? 'Sections and timing (in this order)' : 'Section-wise questions'}</div>
+      <table class="ex-sec-table">
+        <thead><tr><th>#</th><th>Section</th><th class="r">Questions</th>${secTiming ? '<th class="r">Time</th>' : ''}</tr></thead>
+        <tbody>${secRows.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.section)}</td><td class="r">${x.q === null ? '—' : esc(x.q)}</td>${secTiming ? `<td class="r">${esc(x.min)} min</td>` : ''}</tr>`).join('')}</tbody>
+        <tfoot><tr><td></td><td>Total</td><td class="r">${totalQ}</td>${secTiming ? `<td class="r">${secTiming.reduce((a, t) => a + Number(t.minutes || 0), 0)} min</td>` : ''}</tr></tfoot>
+      </table>
+      ${secTiming ? `<div style="font-size:11.5px; color:var(--text-mute); margin-top:8px; line-height:1.5;">Each section has its own time. You can move to the next section only when the current section's time ends; then the next section opens automatically and the finished section is closed (you cannot go back to it).</div>` : ''}</div>
   `;
 }
 
