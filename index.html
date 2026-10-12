@@ -305,6 +305,27 @@
   .ex-pnode.st3{background:var(--purple);}
   .ex-pnode.current{border-color:#fff;}
   .ex-pnode.locked{opacity:.28; cursor:not-allowed;}
+  /* Exam: text size (A− / A+) and figures that fit the screen; tap a figure to enlarge */
+  #view-exam-taking{--exz:1;}
+  #view-exam-taking .qtext{font-size:calc(15.5px * var(--exz));}
+  #view-exam-taking .opt{font-size:calc(14px * var(--exz));}
+  #view-exam-taking .di-box{font-size:calc(13px * var(--exz));}
+  #view-exam-taking .di-box img, #view-exam-taking .q-image-wrap img{display:block; width:auto; max-width:100%; max-height:calc(min(300px, 42vh) * var(--exz)); object-fit:contain; cursor:zoom-in; background:#fff; border-radius:8px;}
+  #view-exam-taking .opt-image{max-height:calc(140px * var(--exz)); max-width:min(100%, calc(220px * var(--exz)));}
+  .fig-hint{font-size:11px; color:var(--text-mute); margin-top:4px;}
+  .opt-zoom{display:inline-block; margin-top:4px; font-size:11px; color:var(--accent-text); cursor:zoom-in; text-decoration:underline;}
+  .ex-zoom{display:inline-flex; gap:6px; align-items:center;}
+  .ex-zoom button{background:var(--field-2,#22303f); color:var(--text); border:1px solid var(--line-soft); border-radius:8px; padding:4px 10px; font-weight:700; font-size:13px; cursor:pointer; line-height:1.2;}
+  .ex-zoom button:disabled{opacity:.4; cursor:default;}
+  #ex-sec-top{margin:10px 0 0;}
+  #ex-sec-top:empty{display:none;}
+  #img-viewer{position:fixed; inset:0; z-index:10050; background:rgba(5,10,18,.94); display:none; flex-direction:column;}
+  #img-viewer.open{display:flex;}
+  #img-viewer .iv-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:10px; flex-wrap:wrap;}
+  #img-viewer .iv-bar button{background:#1d2b3b; color:#fff; border:1px solid #3a4b5e; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:14px;}
+  #img-viewer .iv-bar span{color:#aab7c4; font-size:13px; min-width:54px; text-align:center;}
+  #img-viewer .iv-stage{flex:1; overflow:auto; display:flex; padding:10px; touch-action:pan-x pan-y;}
+  #img-viewer .iv-stage img{margin:auto; display:block; background:#fff; border-radius:6px; max-width:none; max-height:none; user-select:none; -webkit-user-drag:none;}
   .ex-sec-strip{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 2px;}
   .ex-sec-strip span{font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; background:var(--field-2,#22303f); color:var(--text-mute);}
   .ex-sec-strip span.on{background:var(--accent,#16a085); color:#06231e;}
@@ -399,6 +420,7 @@
     </div>
     <div class="ex-timer-bar" id="ex-timer-bar" style="display:none;">
       <div class="ex-timer-txt" id="ex-timer-txt">--:--</div>
+      <div class="ex-zoom" title="Text size"><button type="button" id="ex-zoom-out" aria-label="Smaller text">A−</button><button type="button" id="ex-zoom-in" aria-label="Bigger text">A+</button></div>
       <div class="qprog" id="ex-qprog">Question 1/10</div>
     </div>
     <div class="ex-action-bar" id="ex-action-bar" style="display:none;">
@@ -965,10 +987,11 @@
 
   <!-- ============ LIVE EXAM: TAKING ============ -->
   <div class="view" id="view-exam-taking">
+    <div id="ex-sec-top" class="ex-sec-strip"></div>
     <div class="ex-sec-tag" id="ex-sec-tag">SECTION: GENERAL</div>
     <div class="di-box" id="ex-di-box" style="display:none;"></div>
     <div class="qtext" id="ex-q-text"></div>
-    <div class="q-image-wrap" id="ex-q-image-wrap" style="display:none;"><img id="ex-q-image" alt="Question figure"></div>
+    <div class="q-image-wrap" id="ex-q-image-wrap" style="display:none;"><img id="ex-q-image" alt="Question figure"><div class="fig-hint">🔍 Tap the figure to enlarge</div></div>
     <div id="ex-opt-list"></div>
 
     <div class="exam-actions">
@@ -1115,6 +1138,15 @@
   </div>
 </div>
 
+<div id="img-viewer" role="dialog" aria-label="Figure">
+  <div class="iv-bar">
+    <button type="button" data-iv="out" aria-label="Zoom out">−</button><span id="iv-pct">100%</span>
+    <button type="button" data-iv="in" aria-label="Zoom in">+</button>
+    <button type="button" data-iv="fit">Fit</button>
+    <button type="button" data-iv="close">✕ Close</button>
+  </div>
+  <div class="iv-stage" id="iv-stage"><img id="iv-img" alt="Figure"></div>
+</div>
 <script>
 const SUPABASE_URL = "https://iyzujwixwfydmkzmhrxo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4t1qso9eT9lNU_aGnS8hiQ_zX3EGBXd";
@@ -1270,7 +1302,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.1';
+const APP_VERSION = '2026-10-12.2';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3390,6 +3422,72 @@ function startExamTimer(){
     updateExamTimerDisplay();
   }, 1000);
 }
+/* ---- text size (A− / A+), remembered on this device ---- */
+const EX_ZOOMS = [0.85, 1, 1.15, 1.3, 1.5, 1.75];
+let exZoomIdx = 1;
+try{ const z = parseInt(localStorage.getItem('ex_zoom_idx'), 10); if (z >= 0 && z < EX_ZOOMS.length) exZoomIdx = z; }catch(_e){}
+function applyExamZoom(){
+  document.getElementById('view-exam-taking').style.setProperty('--exz', EX_ZOOMS[exZoomIdx]);
+  document.getElementById('ex-zoom-out').disabled = exZoomIdx === 0;
+  document.getElementById('ex-zoom-in').disabled = exZoomIdx === EX_ZOOMS.length - 1;
+  try{ localStorage.setItem('ex_zoom_idx', exZoomIdx); }catch(_e){}
+}
+document.getElementById('ex-zoom-in').addEventListener('click', () => { if (exZoomIdx < EX_ZOOMS.length - 1){ exZoomIdx++; applyExamZoom(); } });
+document.getElementById('ex-zoom-out').addEventListener('click', () => { if (exZoomIdx > 0){ exZoomIdx--; applyExamZoom(); } });
+applyExamZoom();
+
+/* ---- figure viewer: tap a figure to see it large, zoom with − / + / Fit ---- */
+const ivEl = document.getElementById('img-viewer'), ivImg = document.getElementById('iv-img'), ivStage = document.getElementById('iv-stage');
+let ivScale = 1, ivFitW = 0;
+function ivApply(){
+  ivImg.style.width = Math.round(ivFitW * ivScale) + 'px';
+  document.getElementById('iv-pct').textContent = Math.round(ivScale * 100) + '%';
+}
+function ivFit(){
+  const W = ivStage.clientWidth - 24, H = ivStage.clientHeight - 24;
+  const nw = ivImg.naturalWidth || W, nh = ivImg.naturalHeight || H;
+  ivFitW = Math.max(40, Math.min(W, H * nw / nh, nw * 2.5));
+  ivScale = 1; ivApply();
+}
+function openFigure(src){
+  ivImg.onload = ivFit;
+  ivImg.src = src;
+  ivEl.classList.add('open');
+  if (ivImg.complete && ivImg.naturalWidth) ivFit();
+}
+function closeFigure(){ ivEl.classList.remove('open'); ivImg.removeAttribute('src'); }
+ivEl.querySelector('.iv-bar').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-iv]'); if (!b) return;
+  if (b.dataset.iv === 'in') ivScale = Math.min(5, ivScale + 0.25);
+  if (b.dataset.iv === 'out') ivScale = Math.max(0.5, ivScale - 0.25);
+  if (b.dataset.iv === 'fit') return ivFit();
+  if (b.dataset.iv === 'close') return closeFigure();
+  ivApply();
+});
+ivStage.addEventListener('click', (e) => { if (e.target === ivStage) closeFigure(); });
+ivImg.addEventListener('dblclick', () => { ivScale = ivScale > 1 ? 1 : 2; ivApply(); });
+ivStage.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  ivScale = Math.max(0.5, Math.min(5, ivScale + (e.deltaY < 0 ? 0.15 : -0.15))); ivApply();
+}, { passive: false });
+let ivPinch = null;   // two-finger pinch inside the viewer
+ivStage.addEventListener('touchstart', (e) => { if (e.touches.length === 2){ ivPinch = { d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), s: ivScale }; } }, { passive: true });
+ivStage.addEventListener('touchmove', (e) => {
+  if (!ivPinch || e.touches.length !== 2) return;
+  e.preventDefault();
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  ivScale = Math.max(0.5, Math.min(5, ivPinch.s * d / ivPinch.d)); ivApply();
+}, { passive: false });
+ivStage.addEventListener('touchend', () => { ivPinch = null; });
+window.addEventListener('resize', () => { if (ivEl.classList.contains('open')){ const sc = ivScale; ivFit(); ivScale = sc; ivApply(); } });
+document.getElementById('view-exam-taking').addEventListener('click', (e) => {
+  const z = e.target.closest('.opt-zoom');
+  if (z){ e.stopPropagation(); openFigure(z.dataset.zoomSrc); return; }
+  const img = e.target.closest('.di-box img, .q-image-wrap img');
+  if (img) openFigure(img.src);
+}, true);
+
 /* ---- sectional timing: the running section follows from the time used ---- */
 let exPlan = null, exPlanTotal = 0, exActiveSec = -1;
 function exSecNow(){
@@ -3441,7 +3539,7 @@ function renderExamQuestion(){
   if (q.di_content || q.di_image){
     diBox.style.display = 'block';
     diBox.innerHTML = (q.di_content ? esc(q.di_content).replace(/\n/g,'<br>') : '') +
-                       (q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram">` : '');
+                       (q.di_image ? `<img src="${esc(q.di_image)}" alt="Diagram"><div class="fig-hint">🔍 Tap the figure to enlarge</div>` : '');
   } else {
     diBox.style.display = 'none';
   }
@@ -3461,9 +3559,10 @@ function renderExamQuestion(){
     const div = document.createElement('div');
     div.className = 'opt' + (exAnswers[exCurIndex] === i ? ' selected' : '');
     const imgUrl = (q.option_images && q.option_images[i]) || '';
-    const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[i]}">` : '';
+    const imgHtml = imgUrl ? `<img class="opt-image" src="${esc(imgUrl)}" alt="Option ${tags[i]}"><span class="opt-zoom" data-zoom-src="${esc(imgUrl)}">🔍 Enlarge</span>` : '';
     div.innerHTML = `<div class="tag">${tags[i]}</div><div>${opt ? esc(opt) : ''}${imgHtml}</div>`;
-    div.addEventListener('click', () => {
+    div.addEventListener('click', (ev) => {
+      if (ev.target.closest('.opt-zoom')) return;   // "Enlarge" only opens the figure
       exAnswers[exCurIndex] = i;
       document.querySelectorAll('#ex-opt-list .opt').forEach((el, idx) => el.classList.toggle('selected', idx === i));
     });
@@ -3514,9 +3613,9 @@ function goToExamQuestion(idx){
 function renderExamPalette(){
   const pal = document.getElementById('ex-palette');
   const rg = exPlan ? exSecRange(exActiveSec) : [0, exStatuses.length];
-  const strip = exPlan ? `<div class="ex-sec-strip" style="width:100%;">${exPlan.map((p, k) =>
-      `<span class="${k === exActiveSec ? 'on' : (k < exActiveSec ? 'done' : '')}">${k < exActiveSec ? '🔒 ' : ''}${esc(p.section)} · ${Math.round(p.seconds / 60)}m</span>`).join('')}</div>` : '';
-  pal.innerHTML = strip + exStatuses.map((st, i) => {
+  document.getElementById('ex-sec-top').innerHTML = exPlan ? exPlan.map((p, k) =>
+      `<span class="${k === exActiveSec ? 'on' : (k < exActiveSec ? 'done' : '')}">${k < exActiveSec ? '🔒 ' : ''}${esc(p.section)} · ${Math.round(p.seconds / 60)}m</span>`).join('') : '';
+  pal.innerHTML = exStatuses.map((st, i) => {
     const cls = `ex-pnode st${st}` + (i === exCurIndex ? ' current' : '') + (i < rg[0] || i >= rg[1] ? ' locked' : '');
     return `<div class="${cls}" data-i="${i}">${i+1}</div>`;
   }).join('');
@@ -3536,6 +3635,7 @@ document.getElementById('ex-btn-submit-exam').addEventListener('click', () => {
 
 async function doSubmitExam(){
   exExamActive = false;
+  closeFigure();
   clearInterval(exTickIntervalId);
   clearInterval(exAutosaveIntervalId);
   document.getElementById('ex-fs-warning').style.display = 'none';
