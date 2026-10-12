@@ -280,8 +280,8 @@
   .tm-chip small{font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-family:'Inter',sans-serif; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .ex-timer-txt .tm-sec{background:rgba(243,156,18,.14); border:1px solid rgba(243,156,18,.45); color:var(--warn);}
   .ex-timer-txt .tm-sec.low{background:rgba(231,76,60,.16); border-color:var(--danger); color:var(--danger);}
-  .tm-tot{background:transparent; border:1px solid var(--line-soft); color:var(--text-dim); font-size:14px;}
-  .tm-tot small{color:var(--text-mute);}
+  .tm-tot{background:rgba(52,152,219,.14); border:1px solid rgba(52,152,219,.5); color:#5dade2; font-size:16px;}
+  .tm-tot small{color:#5dade2;}
   .ex-action-bar{display:flex; gap:8px; padding:10px 20px; background:var(--field); border-bottom:1px solid var(--line-soft);}
   .ab-btn{flex:1; background:var(--field-2); color:var(--text-dim); border:1px solid var(--line-soft); border-radius:8px; padding:10px 8px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .ab-btn.ab-primary{background:var(--accent); color:#04231d; border-color:var(--accent);}
@@ -349,7 +349,7 @@
   .ex-sec-strip{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 2px;}
   .ex-sec-strip span{font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; background:var(--field-2,#22303f); color:var(--text-mute);}
   .ex-sec-strip span.on{background:var(--accent,#16a085); color:#06231e;}
-  .ex-sec-strip span.done{text-decoration:line-through; opacity:.6;}
+  .ex-sec-strip span.done{background:rgba(231,76,60,.10); color:#e98b80; border:1px solid rgba(231,76,60,.35);}
   .score-header{background:#132a3e; border-radius:14px 14px 0 0; padding:18px; text-align:center;}
   .sh-brand{font-size:11px; letter-spacing:.08em; color:var(--text-dim);}
   .sh-title{font-size:17px; font-weight:700; color:#fff; margin-top:2px;}
@@ -1322,7 +1322,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.7';
+const APP_VERSION = '2026-10-12.8';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
