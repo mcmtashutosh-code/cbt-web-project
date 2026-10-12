@@ -304,6 +304,11 @@
   .ex-pnode.st2{background:#27ae60;}
   .ex-pnode.st3{background:var(--purple);}
   .ex-pnode.current{border-color:#fff;}
+  .ex-pnode.locked{opacity:.28; cursor:not-allowed;}
+  .ex-sec-strip{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 2px;}
+  .ex-sec-strip span{font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; background:var(--field-2,#22303f); color:var(--text-mute);}
+  .ex-sec-strip span.on{background:var(--accent,#16a085); color:#06231e;}
+  .ex-sec-strip span.done{text-decoration:line-through; opacity:.6;}
   .score-header{background:#132a3e; border-radius:14px 14px 0 0; padding:18px; text-align:center;}
   .sh-brand{font-size:11px; letter-spacing:.08em; color:var(--text-dim);}
   .sh-title{font-size:17px; font-weight:700; color:#fff; margin-top:2px;}
@@ -1265,7 +1270,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-11.2';
+const APP_VERSION = '2026-10-12.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3121,6 +3126,7 @@ const EX_ERROR_MESSAGES = {
   concurrent_session: 'An active examination session already exists for these credentials on another device. Please contact your administrator or invigilator.',
   no_questions: 'The question paper is empty. Please contact your administrator.',
   no_active_session: 'No active exam session found. Please log in again.',
+  timing_mismatch: 'The section timing of this exam is not set up correctly. Please contact your administrator.',
   quota_exceeded: "This exam cannot be started right now because your institute's live test limit for this billing cycle has been reached. Please contact your institute."
 };
 
@@ -3270,6 +3276,8 @@ function renderExamDetailCards(r){
   const sections = r.sections || {};
   const secKeys = Object.keys(sections);
   const secDist = secKeys.length ? secKeys.map(k => `${k}: ${sections[k]} Q`).join(' · ') : 'General';
+  const secTiming = (r.section_timing && r.section_timing.length) ? r.section_timing
+    : (r.section_plan && r.section_plan.length ? r.section_plan.map(p => ({ section: p.section, minutes: Math.round(p.seconds / 60) })) : null);
 
   grid.innerHTML = `
     <div class="ex-detail-card"><div class="edi">📋</div><div class="edl">Total Questions</div><div class="edv">${totalQ}</div></div>
@@ -3278,6 +3286,9 @@ function renderExamDetailCards(r){
     <div class="ex-detail-card"><div class="edi">✖</div><div class="edl">Negative Marks</div><div class="edv" style="color:var(--danger);">${marksWrong}</div></div>
     <div class="ex-detail-card full"><div class="edi">🎯</div><div class="edl">Passing Criteria</div><div class="edv">${passing}</div></div>
     <div class="ex-detail-card full"><div class="edi">📂</div><div class="edl">Section-wise Questions</div><div class="edv" style="font-size:12.5px;">${esc(secDist)}</div></div>
+    ${secTiming ? `<div class="ex-detail-card full" style="border-color:var(--warn);"><div class="edi">⏳</div><div class="edl">Sectional timing (in this order)</div>
+      <div class="edv" style="font-size:12.5px;">${secTiming.map(t => `${esc(t.section)}: ${esc(t.minutes)} min`).join(' → ')}</div>
+      <div style="font-size:11.5px; color:var(--text-mute); margin-top:6px; line-height:1.5;">Each section has its own time. You can move to the next section only when the current section's time ends; then the next section opens automatically and the finished section is closed (you cannot go back to it).</div></div>` : ''}
   `;
 }
 
@@ -3311,6 +3322,10 @@ async function beginExam(){
   exStatuses = r.status;
   exCurIndex = r.current_index || 0;
   exTimeLeft = r.time_left;          // the timer starts below, when the first question is shown
+  exPlan = (r.section_plan && r.section_plan.length) ? r.section_plan : null;
+  exPlanTotal = exPlan ? exPlan.reduce((a, p) => a + Number(p.seconds), 0) : 0;
+  exActiveSec = exPlan ? exSecNow() : -1;
+  if (exPlan){ const rg = exSecRange(exActiveSec); if (exCurIndex < rg[0] || exCurIndex >= rg[1]) exCurIndex = rg[0]; }
   buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
   exExamActive = true;
   showView('view-exam-taking');
@@ -3354,6 +3369,17 @@ function startExamTimer(){
   exTickIntervalId = setInterval(() => {
     if (!exExamActive) return;
     exTimeLeft -= 1;
+    if (exPlan && exTimeLeft > 0){
+      const k = exSecNow();
+      if (k !== exActiveSec){
+        const prev = exPlan[exActiveSec] ? exPlan[exActiveSec].section : '';
+        exActiveSec = k;
+        exCurIndex = exSecRange(k)[0];
+        renderExamQuestion();
+        toast(`⏰ ${prev} time is over. ${exPlan[k].section} section has started.`, '');
+        autosaveExam();
+      }
+    }
     if (exTimeLeft <= 0){
       exTimeLeft = 0;
       updateExamTimerDisplay();
@@ -3364,11 +3390,29 @@ function startExamTimer(){
     updateExamTimerDisplay();
   }, 1000);
 }
+/* ---- sectional timing: the running section follows from the time used ---- */
+let exPlan = null, exPlanTotal = 0, exActiveSec = -1;
+function exSecNow(){
+  const used = exPlanTotal - exTimeLeft; let cum = 0;
+  for (let k = 0; k < exPlan.length; k++){ cum += Number(exPlan[k].seconds); if (used < cum) return k; }
+  return exPlan.length - 1;
+}
+function exSecRange(k){ const p = exPlan[k]; return [Number(p.start), Number(p.start) + Number(p.count)]; }
+function exSecLeft(){
+  let cum = 0; for (let k = 0; k <= exActiveSec; k++) cum += Number(exPlan[k].seconds);
+  return Math.max(0, exTimeLeft - (exPlanTotal - cum));
+}
 function updateExamTimerDisplay(){
   const el = document.getElementById('ex-timer-txt');
-  const m = Math.floor(exTimeLeft/60), s = exTimeLeft%60;
-  el.textContent = `Time left: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  el.classList.toggle('low', exTimeLeft <= 60);
+  const fmt = t => `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+  if (exPlan){
+    const sl = exSecLeft();
+    el.textContent = `${exPlan[exActiveSec].section}: ${fmt(sl)} · Total ${fmt(exTimeLeft)}`;
+    el.classList.toggle('low', sl <= 60);
+  } else {
+    el.textContent = `Time left: ${fmt(exTimeLeft)}`;
+    el.classList.toggle('low', exTimeLeft <= 60);
+  }
   document.getElementById('ex-qprog').textContent = `Question ${exCurIndex+1}/${exQuestions.length}`;
 }
 
@@ -3426,7 +3470,7 @@ function renderExamQuestion(){
     optList.appendChild(div);
   });
 
-  document.getElementById('ex-btn-prev').disabled = exCurIndex === 0;
+  document.getElementById('ex-btn-prev').disabled = exCurIndex === (exPlan ? exSecRange(exActiveSec)[0] : 0);
   renderExamPalette();
 }
 
@@ -3447,6 +3491,17 @@ document.getElementById('ex-btn-prev').addEventListener('click', () => goToExamQ
 
 function goToExamQuestion(idx){
   if (idx < 0) return;
+  if (exPlan){
+    const [a, b] = exSecRange(exActiveSec);
+    if (idx < a){ toast(`The earlier section is closed. You cannot go back to it.`, ''); return; }
+    if (idx >= b){
+      toast(exActiveSec < exPlan.length - 1
+        ? `This is the last question of ${exPlan[exActiveSec].section}. ${exPlan[exActiveSec + 1].section} opens when this section's time ends.`
+        : 'You have reached the last question.', '');
+      renderExamPalette();
+      return;
+    }
+  }
   if (idx >= exQuestions.length){
     toast('You have reached the last question.', '');
     renderExamPalette();
@@ -3458,8 +3513,11 @@ function goToExamQuestion(idx){
 
 function renderExamPalette(){
   const pal = document.getElementById('ex-palette');
-  pal.innerHTML = exStatuses.map((st, i) => {
-    const cls = `ex-pnode st${st}` + (i === exCurIndex ? ' current' : '');
+  const rg = exPlan ? exSecRange(exActiveSec) : [0, exStatuses.length];
+  const strip = exPlan ? `<div class="ex-sec-strip" style="width:100%;">${exPlan.map((p, k) =>
+      `<span class="${k === exActiveSec ? 'on' : (k < exActiveSec ? 'done' : '')}">${k < exActiveSec ? '🔒 ' : ''}${esc(p.section)} · ${Math.round(p.seconds / 60)}m</span>`).join('')}</div>` : '';
+  pal.innerHTML = strip + exStatuses.map((st, i) => {
+    const cls = `ex-pnode st${st}` + (i === exCurIndex ? ' current' : '') + (i < rg[0] || i >= rg[1] ? ' locked' : '');
     return `<div class="${cls}" data-i="${i}">${i+1}</div>`;
   }).join('');
   pal.querySelectorAll('.ex-pnode').forEach(el => {
