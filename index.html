@@ -276,9 +276,14 @@
   .ab-btn{flex:1; background:var(--field-2); color:var(--text-dim); border:1px solid var(--line-soft); border-radius:8px; padding:10px 8px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .ab-btn.ab-primary{background:var(--accent); color:#04231d; border-color:var(--accent);}
   .brief-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; margin:18px 0;}
-  .ex-detail-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px;}
-  .ex-detail-card{background:var(--card); border:1px solid var(--line-soft); border-left:3px solid var(--accent); border-radius:10px; padding:12px 14px;}
-  .ex-detail-card .edi{font-size:16px; margin-bottom:4px;}
+  .ex-detail-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:6px;}
+  @media (max-width:560px){ .ex-detail-grid{grid-template-columns:repeat(2, 1fr);} }
+  .ex-detail-card{background:var(--card); border:1px solid var(--line-soft); border-left:3px solid var(--accent); border-radius:10px; padding:8px 12px;
+    display:grid; grid-template-columns:auto 1fr; column-gap:10px; align-items:center;}
+  .ex-detail-card .edi{font-size:18px; grid-row:1 / 3; margin:0;}
+  .ex-detail-card.full{display:block; padding:12px 14px;}
+  .ex-detail-card.full .edi{display:inline; font-size:15px; margin-right:6px;}
+  .ex-detail-card.full .edl{display:inline;}
   .ex-detail-card .edl{font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-mute); margin-bottom:2px;}
   .ex-detail-card .edv{font-size:14px; font-weight:700; color:var(--text);}
   .ex-detail-card.full{grid-column:1 / -1;}
@@ -1307,7 +1312,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.3';
+const APP_VERSION = '2026-10-12.4';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3308,7 +3313,7 @@ function renderExamDetailCards(r){
   const duration = r.duration_minutes != null ? `${esc(r.duration_minutes)} Minutes` : '—';
   const marksCorrect = r.marks_correct != null ? `+${esc(r.marks_correct)}` : '—';
   const marksWrong = (r.marks_wrong != null && r.marks_wrong > 0) ? `−${esc(r.marks_wrong)}` : 'None';
-  const passing = (r.passing_value != null && r.passing_type) ? `${esc(r.passing_value)} ${esc(r.passing_type)}` : '—';
+  const passing = (r.passing_value != null && r.passing_type) ? (r.passing_type === 'Percentage' ? `${esc(r.passing_value)}%` : `${esc(r.passing_value)} marks`) : '—';
 
   const sections = r.sections || {};
   const secKeys = Object.keys(sections);
@@ -3324,11 +3329,10 @@ function renderExamDetailCards(r){
        : (secKeys.length ? secKeys.map(k => ({ section: k, q: sections[k] })) : [{ section: 'General', q: totalQ }]));
 
   grid.innerHTML = `
-    <div class="ex-detail-card"><div class="edi">📋</div><div class="edl">Total Questions</div><div class="edv">${totalQ}</div></div>
-    <div class="ex-detail-card"><div class="edi">⏱️</div><div class="edl">Exam Duration</div><div class="edv">${duration}</div></div>
-    <div class="ex-detail-card"><div class="edi">✔</div><div class="edl">Correct Marks</div><div class="edv" style="color:#27ae60;">${marksCorrect}</div></div>
-    <div class="ex-detail-card"><div class="edi">✖</div><div class="edl">Negative Marks</div><div class="edv" style="color:var(--danger);">${marksWrong}</div></div>
-    <div class="ex-detail-card full"><div class="edi">🎯</div><div class="edl">Passing Criteria</div><div class="edv">${passing}</div></div>
+    <div class="ex-detail-card"><div class="edi">📋</div><div class="edl">Questions</div><div class="edv">${totalQ}</div></div>
+    <div class="ex-detail-card"><div class="edi">⏱️</div><div class="edl">Duration</div><div class="edv">${duration}</div></div>
+    <div class="ex-detail-card"><div class="edi">⚖️</div><div class="edl">Marking</div><div class="edv"><span style="color:#27ae60;">${marksCorrect}</span> / <span style="color:var(--danger);">${marksWrong === 'None' ? 'no negative' : marksWrong}</span></div></div>
+    <div class="ex-detail-card"><div class="edi">🎯</div><div class="edl">Passing</div><div class="edv">${passing}</div></div>
     <div class="ex-detail-card full"${secTiming ? ' style="border-color:var(--warn);"' : ''}><div class="edi">${secTiming ? '⏳' : '📂'}</div>
       <div class="edl">${secTiming ? 'Sections and timing (in this order)' : 'Section-wise questions'}</div>
       <table class="ex-sec-table">
