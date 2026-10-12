@@ -239,6 +239,10 @@
   /* challenge */
   .ch-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:16px; margin-bottom:14px;}
   .ch-badges{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+  .ch-ends-bar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; margin-bottom:12px; border-radius:12px; background:rgba(52,152,219,.12); border:1px solid rgba(52,152,219,.45); font-size:13px;}
+  .ch-ends-bar b{color:#5dade2; font-family:'Sora',sans-serif; font-size:15px;}
+  .ch-ends-bar b.soon, .ch-badge.ch-end.soon{color:var(--danger);}
+  .ch-badge.ch-end{background:rgba(52,152,219,.14); color:#5dade2;}
   .ch-badge{font-size:11px; font-weight:600; padding:4px 9px; border-radius:8px; background:var(--field-2);}
   .ch-badge.topic{color:var(--text-dim);}
   .ch-badge.time{color:var(--warn);}
@@ -1322,7 +1326,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.8';
+const APP_VERSION = '2026-10-12.9';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -2906,12 +2910,37 @@ async function loadMockHistory(){
    ============================================================ */
 let chChallenges = [];
 let chTimers = {};
+/* ---- "time left" until today's challenge closes ---- */
+let chEnds = {}, chClockOffset = 0, chEndsTick = null;
+function chFmtLeft(ms){
+  if (ms <= 0) return 'Closed';
+  const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const p = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}h ${p(m)}m ${p(sec)}s` : `${p(m)}m ${p(sec)}s`;
+}
+function chUpdateEnds(){
+  const now = Date.now() + chClockOffset;
+  let reload = false;
+  document.querySelectorAll('[data-ch-end]').forEach(el => {
+    const left = new Date(el.dataset.chEnd).getTime() - now;
+    el.textContent = el.dataset.prefix + chFmtLeft(left);
+    el.classList.toggle('soon', left > 0 && left < 3600000);
+    if (left <= 0 && left > -2000) reload = true;
+  });
+  if (reload && document.getElementById('view-ch-list').classList.contains('active')) setTimeout(loadChallenges, 1500);
+}
 
 async function loadChallenges(){
   const listEl = document.getElementById('challenge-list');
   listEl.innerHTML = '<div class="spin"></div>';
   try{
-    chChallenges = await rpc('get_todays_challenges', { p_mobile: session.mobile, p_password: session.password });
+    const [list, ends] = await Promise.all([
+      rpc('get_todays_challenges', { p_mobile: session.mobile, p_password: session.password }),
+      rpc('get_challenge_ends', { p_mobile: session.mobile, p_password: session.password }).catch(() => null)
+    ]);
+    chChallenges = list;
+    chEnds = (ends && ends.ok) ? ends.ends || {} : {};
+    chClockOffset = (ends && ends.server_now) ? new Date(ends.server_now).getTime() - Date.now() : 0;
     renderChallenges();
   }catch(err){
     listEl.innerHTML = '<div class="empty-state">Unable to load today\'s challenges. Please try again.</div>';
@@ -2925,7 +2954,24 @@ function renderChallenges(){
     return;
   }
   listEl.innerHTML = '';
+  // one clear countdown for the whole set (the earliest closing time)
+  const ends = Object.values(chEnds).map(d => new Date(d).getTime()).filter(Boolean);
+  if (ends.length){
+    const first = new Date(Math.min(...ends)).toISOString();
+    const pending = chChallenges.filter(c => !c.attempted).length;
+    const bar = document.createElement('div');
+    bar.className = 'ch-ends-bar';
+    bar.innerHTML = `<span>⏳ ${pending ? `${pending} question${pending === 1 ? '' : 's'} left to answer` : 'All answered — well done!'}</span>
+      <b data-ch-end="${first}" data-prefix="Closes in ">Closes in …</b>`;
+    listEl.appendChild(bar);
+  }
   chChallenges.forEach(ch => listEl.appendChild(buildChallengeCard(ch)));
+  clearInterval(chEndsTick);
+  chUpdateEnds();
+  chEndsTick = setInterval(() => {
+    if (!document.getElementById('view-ch-list').classList.contains('active')) return;
+    chUpdateEnds();
+  }, 1000);
 }
 
 function buildChallengeCard(ch){
@@ -2938,7 +2984,8 @@ function buildChallengeCard(ch){
   badges.innerHTML = `
     <span class="ch-badge topic">📚 ${esc(ch.topic || 'General')}</span>
     <span class="ch-badge time">⏱ ${ch.time_limit_seconds || 120}s limit</span>
-    <span class="ch-badge pts">⭐ Max 5 pts</span>`;
+    <span class="ch-badge pts">⭐ Max 5 pts</span>
+    ${chEnds[String(ch.id)] && !ch.attempted && Object.values(chEnds).some(d => d !== chEnds[String(ch.id)]) ? `<span class="ch-badge ch-end" data-ch-end="${esc(chEnds[String(ch.id)])}" data-prefix="⌛ ">⌛ …</span>` : ''}`;
   card.appendChild(badges);
 
   const qEl = document.createElement('div');
