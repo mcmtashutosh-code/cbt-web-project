@@ -272,12 +272,16 @@
   .ex-timer-bar{display:flex; align-items:center; justify-content:space-between; padding:8px 20px; background:var(--field); border-bottom:1px solid var(--line-soft);}
   .ex-timer-txt{font-size:16px; font-weight:700; color:var(--warn); font-family:'Sora',sans-serif;}
   .ex-timer-txt.low{color:var(--danger);}
-  .ex-timer-txt .tm-chip{display:inline-flex; flex-direction:column; line-height:1.1; padding:3px 10px; border-radius:8px; margin-right:8px; vertical-align:middle;}
-  .ex-timer-txt .tm-chip small{font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-family:'Inter',sans-serif; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tm-chip{display:inline-flex; flex-direction:column; line-height:1.1; padding:3px 10px; border-radius:8px; margin-right:8px; vertical-align:middle;}
+  #ex-timer-bar > *{flex:1;}
+  #ex-qprog{text-align:center; white-space:nowrap;}
+  .ex-tb-right{display:flex; align-items:center; justify-content:flex-end; gap:8px;}
+  .ex-tb-right .tm-tot{font-family:'Sora',sans-serif; font-weight:700; margin-right:0;}
+  .tm-chip small{font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-family:'Inter',sans-serif; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .ex-timer-txt .tm-sec{background:rgba(243,156,18,.14); border:1px solid rgba(243,156,18,.45); color:var(--warn);}
   .ex-timer-txt .tm-sec.low{background:rgba(231,76,60,.16); border-color:var(--danger); color:var(--danger);}
-  .ex-timer-txt .tm-tot{background:transparent; border:1px solid var(--line-soft); color:var(--text-dim); font-size:14px;}
-  .ex-timer-txt .tm-tot small{color:var(--text-mute);}
+  .tm-tot{background:transparent; border:1px solid var(--line-soft); color:var(--text-dim); font-size:14px;}
+  .tm-tot small{color:var(--text-mute);}
   .ex-action-bar{display:flex; gap:8px; padding:10px 20px; background:var(--field); border-bottom:1px solid var(--line-soft);}
   .ab-btn{flex:1; background:var(--field-2); color:var(--text-dim); border:1px solid var(--line-soft); border-radius:8px; padding:10px 8px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
   .ab-btn.ab-primary{background:var(--accent); color:#04231d; border-color:var(--accent);}
@@ -436,8 +440,8 @@
     </div>
     <div class="ex-timer-bar" id="ex-timer-bar" style="display:none;">
       <div class="ex-timer-txt" id="ex-timer-txt">--:--</div>
-      <div class="ex-zoom" title="Text size"><button type="button" id="ex-zoom-out" aria-label="Smaller text">A−</button><button type="button" id="ex-zoom-in" aria-label="Bigger text">A+</button></div>
       <div class="qprog" id="ex-qprog">Question 1/10</div>
+      <div class="ex-tb-right"><div class="ex-zoom" title="Text size"><button type="button" id="ex-zoom-out" aria-label="Smaller text">A−</button><button type="button" id="ex-zoom-in" aria-label="Bigger text">A+</button></div><span id="ex-tot-chip"></span></div>
     </div>
     <div class="ex-action-bar" id="ex-action-bar" style="display:none;">
       <button class="ab-btn" id="ex-ab-back-result" style="display:none;">← Back to result</button>
@@ -1318,7 +1322,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.5';
+const APP_VERSION = '2026-10-12.7';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3532,13 +3536,15 @@ function updateExamTimerDisplay(){
   if (exPlan){
     const sl = exSecLeft();
     el.classList.remove('low');
-    el.innerHTML = `<span class="tm-chip tm-sec${sl <= 60 ? ' low' : ''}"><small>${esc(exPlan[exActiveSec].section)}</small>${fmt(sl)}</span>`
-      + `<span class="tm-chip tm-tot"><small>Total time</small>${fmt(exTimeLeft)}</span>`;
+    el.innerHTML = `<span class="tm-chip tm-sec${sl <= 60 ? ' low' : ''}"><small>${esc(exPlan[exActiveSec].section)}</small>${fmt(sl)}</span>`;
   } else {
     el.textContent = `Time left: ${fmt(exTimeLeft)}`;
     el.classList.toggle('low', exTimeLeft <= 60);
   }
+  // question number in the middle; sectional exam: total time on the right
   document.getElementById('ex-qprog').textContent = `Question ${exCurIndex+1}/${exQuestions.length}`;
+  document.getElementById('ex-tot-chip').innerHTML = exPlan
+      ? `<span class="tm-chip tm-tot"><small>Total time</small>${String(Math.floor(exTimeLeft/60)).padStart(2,'0')}:${String(exTimeLeft%60).padStart(2,'0')}</span>` : '';
 }
 
 async function autosaveExam(){
