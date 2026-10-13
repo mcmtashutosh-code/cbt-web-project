@@ -1141,10 +1141,12 @@
 <div id="celebrate-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,15,25,0.92); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:20px;">
   <div id="celebrate-emojis" style="position:absolute; inset:0; overflow:hidden; pointer-events:none;"></div>
   <div style="position:relative; z-index:2;">
-    <div style="font-size:64px; line-height:1;">🎉🌸🎊</div>
-    <div style="font-size:24px; font-weight:800; color:#fff; margin:16px 0 6px;">Congratulations!</div>
-    <div id="celebrate-msg" style="font-size:16px; color:#bcd6ea; max-width:320px; margin:0 auto 22px;"></div>
-    <button class="btn btn-primary" id="btn-celebrate-close" style="padding:12px 28px; width:auto;">Awesome, thanks! 🙌</button>
+    <div style="font-size:64px; line-height:1;">💐🏆🌸</div>
+    <div id="celebrate-title" style="font-size:24px; font-weight:800; color:#fff; margin:16px 0 4px;">Congratulations!</div>
+    <div style="font-size:18px; font-weight:700; color:#f7d774; margin-bottom:12px; font-family:'Noto Sans Devanagari','Mangal',sans-serif;">हार्दिक बधाई!</div>
+    <div id="celebrate-msg" style="font-size:15.5px; color:#d6e6f2; max-width:380px; margin:0 auto 10px; line-height:1.55;"></div>
+    <div id="celebrate-msg-hi" style="font-size:15.5px; color:#bcd6ea; max-width:380px; margin:0 auto 22px; line-height:1.7; font-family:'Noto Sans Devanagari','Mangal',sans-serif;"></div>
+    <button class="btn btn-primary" id="btn-celebrate-close" style="padding:12px 28px; width:auto; display:inline-block; margin:0 auto;">Thank you! 🙏</button>
   </div>
 </div>
 
@@ -1326,7 +1328,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-12.9';
+const APP_VERSION = '2026-10-13.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -1889,11 +1891,14 @@ function showCelebrationOverlay(milestone){
   const overlay = document.getElementById('celebrate-overlay');
   const msgEl = document.getElementById('celebrate-msg');
   const emojiLayer = document.getElementById('celebrate-emojis');
-  msgEl.textContent = `You've crossed ${milestone} points on Today's Challenge. Keep it up! 🚀`;
+  const nm = (session && session.name) ? session.name : '';
+  document.getElementById('celebrate-title').textContent = nm ? `Congratulations, ${nm}!` : 'Congratulations!';
+  msgEl.textContent = `You have reached ${milestone} points in the Daily Challenge. Keep up the excellent work!`;
+  document.getElementById('celebrate-msg-hi').textContent = `${nm ? nm + ', ' : ''}आपने डेली चैलेंज में ${milestone} अंक पूरे कर लिए हैं। इसी तरह आगे बढ़ते रहिए!`;
 
   emojiLayer.innerHTML = '';
-  const bits = ['🎉','🌸','🎊','⭐','🏆','🌟'];
-  for (let i = 0; i < 26; i++){
+  const bits = ['🌸','🌼','🌺','🌷','💐','🏵️','🌹','✨'];   // flower shower
+  for (let i = 0; i < 34; i++){
     const el = document.createElement('div');
     el.textContent = bits[i % bits.length];
     const left = Math.random() * 100;
@@ -3186,10 +3191,10 @@ async function loadLeaderboard(scope){
       list.innerHTML = '<div class="empty-state">No entries yet. Be the first to attempt!</div>';
       return;
     }
-    const medals = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th'];
+    const medals = ['🥇','🥈','🥉','#4','#5','#6','#7','#8','#9','#10'];
     list.innerHTML = rows.map((r,i) => `
       <div class="lb-row ${r.is_me ? 'me' : ''}">
-        <div class="lb-rank">${medals[i] || '#'+(i+1)}</div>
+        <div class="lb-rank"${i < 3 ? ' style="font-size:26px; line-height:1;"' : ''}>${medals[i] || '#'+(i+1)}</div>
         <div class="lb-info">
           <div class="lb-name ${r.is_me ? 'me-tag' : ''}">${esc(r.name)}</div>
           <div class="lb-meta">ID: ${esc(r.mobile_masked)} · ${r.done} attempt${r.done===1?'':'s'}${r.tab_switches ? ` · <span style="color:var(--warn);">👁 ${r.tab_switches} tab switch${r.tab_switches===1?'':'es'}</span>` : ''}</div>
