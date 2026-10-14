@@ -176,6 +176,15 @@
   .row2 .count-grid{margin-bottom:0;}
   .count-grid{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
   .count-chip{padding:10px 16px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:1px solid var(--line-soft); color:var(--text-dim); background:var(--field);}
+  .pyq-chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .pyq-chip{padding:9px 14px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; border:1px solid var(--line-soft); color:var(--text-dim); background:var(--field);}
+  .pyq-chip small{font-weight:600; opacity:.75; margin-left:4px;}
+  .pyq-chip.sel{background:var(--accent); color:#04231d; border-color:var(--accent);}
+  .pyq-paper{display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer;}
+  .pyq-paper.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset;}
+  .pyq-paper .t{font-weight:700; font-size:14px;}
+  .pyq-paper .s{font-size:12px; color:var(--text-mute); margin-top:3px;}
+  .pyq-paper .n{font-family:'Sora',sans-serif; font-weight:700; color:var(--accent-text); white-space:nowrap;}
   .count-chip.sel{background:var(--accent); color:#04231d; border-color:var(--accent);}
   .avail-note{font-size:11.5px; color:var(--accent-text); margin-top:2px;}
   .exam-head{display:flex; align-items:center; justify-content:space-between; padding:14px 0 6px;}
@@ -610,6 +619,10 @@
         <div class="mi">🧪</div>
         <div><div class="mt">Mock test</div><div class="ms">Build your own timed test from practice questions</div></div>
       </div>
+      <div class="menu-card" id="menu-pyq">
+        <div class="mi">📜</div>
+        <div><div class="mt">Previous year questions</div><div class="ms">SSC, Bank, Railway &amp; more — full papers or topic-wise</div></div>
+      </div>
       <div class="menu-card" id="menu-my-report">
         <div class="mi">📊</div>
         <div><div class="mt">My report card</div><div class="ms">Your performance, subject-wise results and rank</div></div>
@@ -924,6 +937,44 @@
     <button class="btn btn-ghost" id="btn-mock-history-open" style="margin-bottom:22px;">📜 My mock test history</button>
   </div>
 
+  <!-- ============ PYQ ============ -->
+  <div class="view" id="view-pyq">
+    <div class="section-title">Previous year questions</div>
+    <div class="section-sub">Real questions from past exams — attempt a full paper or practise topic-wise.</div>
+    <div class="pcard">
+      <div class="lbl">Exam</div>
+      <div class="pyq-chips" id="pyq-exams"><div class="spin"></div></div>
+    </div>
+    <div id="pyq-body" style="display:none;">
+      <div class="row2" style="margin-bottom:12px;">
+        <div class="pyq-chip sel" id="pyq-tab-paper" style="text-align:center;">📄 Full papers</div>
+        <div class="pyq-chip" id="pyq-tab-topic" style="text-align:center;">🎯 Topic-wise</div>
+      </div>
+      <div id="pyq-papers"></div>
+      <div id="pyq-topic" class="pcard" style="display:none;">
+        <div class="lbl">Subject</div>
+        <select id="pyq-subj"></select>
+        <div class="lbl" style="margin-top:12px;">Topic</div>
+        <select id="pyq-top"></select>
+        <div class="lbl" style="margin-top:12px;">Number of questions</div>
+        <input id="pyq-count" type="number" min="1" value="20">
+        <div class="avail-note" id="pyq-avail" style="margin-top:6px;"></div>
+      </div>
+      <div class="pcard" id="pyq-start-card">
+        <div class="lbl">Ready to start</div>
+        <div id="pyq-sel-label" style="font-weight:700; font-size:14px; margin-bottom:10px;">Choose a paper above</div>
+        <div class="row2">
+          <div><div class="lbl">Time (minutes)</div><input id="pyq-minutes" type="number" min="1" value="60"></div>
+          <div><div class="lbl">Negative marking</div>
+            <div style="display:flex; gap:6px;"><div class="pyq-chip" id="pyq-neg-off">Off</div><div class="pyq-chip sel" id="pyq-neg-on">−0.25</div></div></div>
+        </div>
+        <div class="error-text" id="pyq-err"></div>
+        <button class="btn btn-primary" id="btn-pyq-start" style="margin-top:10px;" disabled>▶ Start</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="btn-pyq-history" style="margin:4px 0 22px;">📜 My test history</button>
+  </div>
+
   <!-- ============ MOCK TEST: EXAM ============ -->
   <div class="view" id="view-mock-exam">
     <div class="exam-head"><div class="qcount" id="mock-q-count">Question 1/10</div><div class="subjtag" id="mock-timer">—</div></div>
@@ -944,7 +995,7 @@
   <!-- ============ MOCK TEST: RESULT ============ -->
   <div class="view" id="view-mock-result">
     <div class="result-card">
-      <div style="font-size:16px; font-weight:700; color:var(--accent-text);">Mock test complete</div>
+      <div style="font-size:16px; font-weight:700; color:var(--accent-text);" id="mock-res-title">Mock test complete</div>
       <div style="font-size:11.5px; color:var(--text-mute); margin-top:2px;" id="mock-res-tag">—</div>
       <div class="score-big" id="mock-res-score">0/0</div>
       <div class="score-sub" id="mock-res-pct">0% correct</div>
@@ -1319,6 +1370,7 @@ const REFRESHABLE_VIEWS = {
   'view-ch-list': () => document.getElementById('menu-challenge').click(),
   'view-messages': () => document.getElementById('menu-messages').click(),
   'view-prac-setup': () => document.getElementById('menu-practice').click(),
+  'view-pyq': () => loadPyq(),
   'view-exam-briefing': () => refreshExamScheduleStatus()
 };
 /* Admin test ID: a clear strip so it is never mistaken for a real student */
@@ -1337,7 +1389,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-14.3';
+const APP_VERSION = '2026-10-14.4';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -1415,7 +1467,7 @@ function showView(id){
   window.scrollTo(0,0);
 }
 
-const HOME_ADJACENT = new Set(['view-my-report','view-exam-history','view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
+const HOME_ADJACENT = new Set(['view-pyq','view-my-report','view-exam-history','view-feedback','view-prac-setup','view-ch-list','view-exam-briefing','view-password','view-messages','view-profile','view-mock-setup','view-mock-history','view-mock-review','view-mock-result']);
 
 /* ---------------- REGISTER ---------------- */
 document.getElementById('link-go-register').addEventListener('click', (e) => {
@@ -2673,6 +2725,7 @@ document.getElementById('btn-mock-start').addEventListener('click', async () => 
       timingMode, overallMinutes, perqSeconds, negativeMarking,
       topics: selections
     };
+    document.getElementById('btn-mock-again').textContent = 'Build another mock test';
     mockStartTime = Date.now();
     mockOverallSecondsLeft = overallMinutes * 60;
     mockPerQRemaining = mockQuestions.map(() => perqSeconds);
@@ -2683,6 +2736,147 @@ document.getElementById('btn-mock-start').addEventListener('click', async () => 
   }catch(err){
     errEl.textContent = 'Unable to start the mock test. Please try again.';
   }
+});
+
+
+/* ---------------- PYQ (Previous Year Questions) ----------------
+   Common bank uploaded by the platform. Uses the mock-test runner for the
+   actual test, result, review and history. */
+let pyqCat = [], pyqExam = null, pyqMode = 'paper', pyqPaper = null;
+document.getElementById('menu-pyq').addEventListener('click', () => { showView('view-pyq'); loadPyq(); });
+document.getElementById('btn-pyq-history').addEventListener('click', loadMockHistory);
+async function loadPyq(){
+  const box = document.getElementById('pyq-exams');
+  box.innerHTML = '<div class="spin"></div>';
+  try{
+    const r = await rpc('pyq_catalog', { p_mobile: session.mobile, p_password: session.password });
+    pyqCat = (r && r.ok && r.exams) || [];
+  }catch(e){ box.innerHTML = '<div class="empty-state" style="padding:10px 0;">Unable to load. Please try again.</div>'; return; }
+  if (!pyqCat.length){
+    box.innerHTML = '<div class="empty-state" style="padding:10px 0;">Previous year papers will appear here soon.</div>';
+    document.getElementById('pyq-body').style.display = 'none';
+    return;
+  }
+  if (!pyqCat.some(e => e.exam === pyqExam)) pyqExam = pyqCat[0].exam;
+  box.innerHTML = pyqCat.map(e => `<div class="pyq-chip ${e.exam === pyqExam ? 'sel' : ''}" data-exam="${esc(e.exam)}">${esc(e.exam)}<small>${e.n}</small></div>`).join('');
+  pyqRenderExam();
+}
+document.getElementById('pyq-exams').addEventListener('click', (e) => {
+  const c = e.target.closest('.pyq-chip'); if (!c) return;
+  pyqExam = c.dataset.exam; pyqPaper = null;
+  document.querySelectorAll('#pyq-exams .pyq-chip').forEach(x => x.classList.toggle('sel', x === c));
+  pyqRenderExam();
+});
+function pyqCur(){ return pyqCat.find(e => e.exam === pyqExam); }
+function pyqSetMode(m){
+  pyqMode = m;
+  document.getElementById('pyq-tab-paper').classList.toggle('sel', m === 'paper');
+  document.getElementById('pyq-tab-topic').classList.toggle('sel', m === 'topic');
+  document.getElementById('pyq-papers').style.display = m === 'paper' ? 'block' : 'none';
+  document.getElementById('pyq-topic').style.display = m === 'topic' ? 'block' : 'none';
+  pyqUpdateStart();
+}
+document.getElementById('pyq-tab-paper').addEventListener('click', () => pyqSetMode('paper'));
+document.getElementById('pyq-tab-topic').addEventListener('click', () => pyqSetMode('topic'));
+function pyqPaperName(p){ return [p.year, p.shift].filter(Boolean).join(' · ') || 'Paper'; }
+function pyqRenderExam(){
+  const ex = pyqCur(); if (!ex) return;
+  document.getElementById('pyq-body').style.display = 'block';
+  const papers = ex.papers || [];
+  document.getElementById('pyq-papers').innerHTML = papers.map((p, i) =>
+    `<div class="sess-card pyq-paper ${pyqPaper === i ? 'sel' : ''}" data-i="${i}">
+       <div><div class="t">${esc(ex.exam)} ${esc(pyqPaperName(p))}</div><div class="s">${esc(p.subjects || '')}</div></div>
+       <div class="n">${p.n} Q</div></div>`).join('');
+  const subjects = [...new Set((ex.topics || []).map(t => t.subject))];
+  document.getElementById('pyq-subj').innerHTML = subjects.map(sb => `<option value="${esc(sb)}">${esc(sb)}</option>`).join('');
+  pyqFillTopics();
+  pyqSetMode(pyqMode);
+}
+function pyqFillTopics(){
+  const ex = pyqCur(); const sb = document.getElementById('pyq-subj').value;
+  const ts = (ex.topics || []).filter(t => t.subject === sb);
+  const all = ts.reduce((a, t) => a + t.n, 0);
+  document.getElementById('pyq-top').innerHTML = `<option value="">All topics (${all})</option>` +
+    ts.map(t => `<option value="${esc(t.topic)}">${esc(t.topic)} (${t.n})</option>`).join('');
+  pyqUpdateStart();
+}
+document.getElementById('pyq-subj').addEventListener('change', pyqFillTopics);
+document.getElementById('pyq-top').addEventListener('change', pyqUpdateStart);
+document.getElementById('pyq-count').addEventListener('input', pyqUpdateStart);
+document.getElementById('pyq-papers').addEventListener('click', (e) => {
+  const c = e.target.closest('.pyq-paper'); if (!c) return;
+  pyqPaper = +c.dataset.i;
+  document.querySelectorAll('#pyq-papers .pyq-paper').forEach(x => x.classList.toggle('sel', x === c));
+  pyqUpdateStart(true);
+});
+function pyqTopicAvail(){
+  const ex = pyqCur(); const sb = document.getElementById('pyq-subj').value; const tp = document.getElementById('pyq-top').value;
+  return (ex.topics || []).filter(t => t.subject === sb && (!tp || t.topic === tp)).reduce((a, t) => a + t.n, 0);
+}
+function pyqUpdateStart(setTime){
+  const ex = pyqCur(); const lbl = document.getElementById('pyq-sel-label'); const btn = document.getElementById('btn-pyq-start');
+  let n = 0;
+  if (pyqMode === 'paper'){
+    const p = ex && pyqPaper != null ? ex.papers[pyqPaper] : null;
+    if (p){ n = p.n; lbl.textContent = `${ex.exam} ${pyqPaperName(p)} — ${p.n} questions`; }
+    else lbl.textContent = 'Choose a paper above';
+  } else if (ex){
+    const avail = pyqTopicAvail();
+    const want = Math.max(1, parseInt(document.getElementById('pyq-count').value, 10) || 1);
+    n = Math.min(avail, want);
+    document.getElementById('pyq-avail').textContent = `Available: ${avail} question${avail === 1 ? '' : 's'}`;
+    const tp = document.getElementById('pyq-top').value;
+    lbl.textContent = `${ex.exam} · ${document.getElementById('pyq-subj').value}${tp ? ' → ' + tp : ''} — ${n} questions`;
+  }
+  btn.disabled = !n;
+  if (n && (setTime || pyqMode === 'topic')) document.getElementById('pyq-minutes').value = Math.max(1, Math.round(n * 0.6));
+}
+['off','on'].forEach(k => document.getElementById('pyq-neg-' + k).addEventListener('click', () => {
+  document.getElementById('pyq-neg-on').classList.toggle('sel', k === 'on');
+  document.getElementById('pyq-neg-off').classList.toggle('sel', k === 'off');
+}));
+document.getElementById('btn-pyq-start').addEventListener('click', async () => {
+  const ex = pyqCur(); const errEl = document.getElementById('pyq-err'); errEl.textContent = '';
+  const btn = document.getElementById('btn-pyq-start'); btn.disabled = true;
+  try{
+    let args = { p_mobile: session.mobile, p_password: session.password, p_exam: ex.exam }, label, want = 0, p = null;
+    if (pyqMode === 'paper'){
+      p = ex.papers[pyqPaper]; args.p_year = p.year; args.p_shift = p.shift || '';
+      label = { subject: 'PYQ · ' + ex.exam, topic: pyqPaperName(p) };
+    } else {
+      args.p_subject = document.getElementById('pyq-subj').value;
+      const tp = document.getElementById('pyq-top').value; if (tp) args.p_topic = tp;
+      want = Math.max(1, parseInt(document.getElementById('pyq-count').value, 10) || 1);
+      label = { subject: 'PYQ · ' + ex.exam, topic: args.p_subject + (tp ? ' → ' + tp : '') };
+    }
+    const r = await rpc('pyq_questions', args);
+    let rows = (r && r.ok && r.questions) || [];
+    if (!rows.length){ errEl.textContent = 'No questions found. Please try another selection.'; return; }
+    if (pyqMode === 'topic') rows = groupAwareSelectAndShuffle(rows, want);
+    mockQuestions = rows.map(row => ({
+      id: row.id, q: row.question || '', question_image_url: row.question_image_url || '',
+      options: [row.option1, row.option2, row.option3, row.option4].map(o => o || ''),
+      option_images: [row.option_a_image_url || '', row.option_b_image_url || '', row.option_c_image_url || '', row.option_d_image_url || ''],
+      ans: parseInt(row.correct_index, 10) || 0,
+      solution: (row.solution || '').trim(),
+      di_content: row.di_content || '', di_group: row.di_group || '', di_image: row.di_image || '',
+      subject: `${row.exam}${row.year ? ' ' + row.year : ''}${row.shift ? ' · ' + row.shift : ''}`, topic: `${row.subject} → ${row.topic}`
+    }));
+    const minutes = Math.max(1, parseInt(document.getElementById('pyq-minutes').value, 10) || 30);
+    mockAnswers = mockQuestions.map(() => -1);
+    mockCurIndex = 0;
+    mockConfig = { timingMode: 'overall', overallMinutes: minutes, perqSeconds: 60,
+      negativeMarking: document.getElementById('pyq-neg-on').classList.contains('sel'),
+      topics: [{ ...label, count: mockQuestions.length }], pyq: true };
+    document.getElementById('btn-mock-again').textContent = '📜 Back to previous year papers';
+    mockStartTime = Date.now();
+    mockOverallSecondsLeft = minutes * 60;
+    mockPerQRemaining = mockQuestions.map(() => 60);
+    showView('view-mock-exam');
+    renderMockQuestion();
+    startMockTimer();
+  }catch(e){ errEl.textContent = 'Unable to start. Please try again.'; }
+  finally{ btn.disabled = false; }
 });
 
 function startMockTimer(){
@@ -2823,6 +3017,7 @@ async function endMockTest(){
   const pct = total > 0 ? Math.round((correct/total)*1000)/10 : 0;
   const durationSec = Math.round((Date.now() - mockStartTime)/1000);
 
+  document.getElementById('mock-res-title').textContent = mockConfig.pyq ? 'Previous year paper complete' : 'Mock test complete';
   document.getElementById('mock-res-tag').textContent =
     mockConfig.topics.map(t => `${t.subject}→${t.topic} (${t.count})`).join(', ');
   document.getElementById('mock-res-score').textContent = `${finalMarks}/${maxMarks}`;
@@ -2845,7 +3040,10 @@ async function endMockTest(){
   }catch(err){ /* non-fatal — result is already shown even if saving history fails */ }
 }
 
-document.getElementById('btn-mock-again').addEventListener('click', () => { showView('view-mock-setup'); loadMockSetup(); });
+document.getElementById('btn-mock-again').addEventListener('click', () => {
+  if (mockConfig && mockConfig.pyq){ showView('view-pyq'); return; }
+  showView('view-mock-setup'); loadMockSetup();
+});
 document.getElementById('btn-mock-result-home').addEventListener('click', () => showView('view-home'));
 document.getElementById('btn-mock-view-review').addEventListener('click', () => {
   renderMockReview(mockQuestions, mockAnswers);
