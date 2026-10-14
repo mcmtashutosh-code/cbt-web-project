@@ -259,6 +259,9 @@
   .ch-result.ok{background:#0b3d1f; color:#27ae60;}
   .ch-result.bad{background:#3d0b0b; color:#e74c3c;}
   .chs-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:4px 0 14px; cursor:pointer; padding:12px 14px; border-radius:12px; background:rgba(155,89,182,.12); border:1px solid rgba(155,89,182,.45);}
+  .chs-head.today{background:rgba(243,156,18,.12); border-color:rgba(243,156,18,.55); margin-top:4px;}
+  .chs-head.today b[data-ch-end]{font-size:12.5px; color:#f5b041;}
+  .chs-head.today b.soon{color:var(--danger);}
   .chs-head b{font-family:'Sora',sans-serif; font-size:14.5px;}
   .chs-head span{font-size:12px; opacity:.8;}
   .chs-you{font-size:12.5px; margin:6px 0 2px; opacity:.9;}
@@ -975,10 +978,8 @@
 
   <!-- ============ CHALLENGE: LIST ============ -->
   <div class="view" id="view-ch-list">
-    <div id="ch-solutions"></div>
-    <div class="section-title">Today's challenges</div>
-    <div class="section-sub">Answer fast for more points — max 5 points per question.</div>
     <div id="challenge-list"><div class="spin"></div></div>
+    <div id="ch-solutions"></div>
     <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
@@ -1336,7 +1337,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-14.2';
+const APP_VERSION = '2026-10-14.3';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -2998,25 +2999,33 @@ function renderChallengeSolutions(r){
   };
 }
 
+let chtOpen = false;
 function renderChallenges(){
   const listEl = document.getElementById('challenge-list');
   if (!chChallenges.length){
-    listEl.innerHTML = '<div class="empty-state">No challenge posted for today. Check back later.</div>';
+    listEl.innerHTML = `<div class="chs-head today" style="cursor:default"><div><b>🎯 Today's challenges</b><br><span>No challenge posted for today. Check back later.</span></div></div>`;
     return;
   }
   listEl.innerHTML = '';
-  // one clear countdown for the whole set (the earliest closing time)
+  // one button for today's set: tap to open the challenge cards
   const ends = Object.values(chEnds).map(d => new Date(d).getTime()).filter(Boolean);
-  if (ends.length){
-    const first = new Date(Math.min(...ends)).toISOString();
-    const pending = chChallenges.filter(c => !c.attempted).length;
-    const bar = document.createElement('div');
-    bar.className = 'ch-ends-bar';
-    bar.innerHTML = `<span>⏳ ${pending ? `${pending} question${pending === 1 ? '' : 's'} left to answer` : 'All answered — well done!'}</span>
-      <b data-ch-end="${first}" data-prefix="Closes in ">Closes in …</b>`;
-    listEl.appendChild(bar);
-  }
-  chChallenges.forEach(ch => listEl.appendChild(buildChallengeCard(ch)));
+  const first = ends.length ? new Date(Math.min(...ends)).toISOString() : '';
+  const total = chChallenges.length;
+  const pending = chChallenges.filter(c => !c.attempted).length;
+  const head = document.createElement('div');
+  head.className = 'chs-head today';
+  head.innerHTML = `<div><b>🎯 Today's challenges</b><br><span>${total} question${total === 1 ? '' : 's'} · ${pending ? `${pending} left to answer` : 'All answered — well done!'} · max 5 pts each</span>
+      ${first ? `<br><b data-ch-end="${first}" data-prefix="⏳ Closes in ">⏳ Closes in …</b>` : ''}</div><span style="font-size:18px">${chtOpen ? '▲' : '▼'}</span>`;
+  const body = document.createElement('div');
+  body.style.display = chtOpen ? 'block' : 'none';
+  head.onclick = () => {
+    chtOpen = !chtOpen;
+    body.style.display = chtOpen ? 'block' : 'none';
+    head.querySelector(':scope > span').textContent = chtOpen ? '▲' : '▼';
+  };
+  listEl.appendChild(head);
+  listEl.appendChild(body);
+  chChallenges.forEach(ch => body.appendChild(buildChallengeCard(ch)));
   clearInterval(chEndsTick);
   chUpdateEnds();
   chEndsTick = setInterval(() => {
