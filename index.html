@@ -108,10 +108,13 @@
   @media (prefers-reduced-motion: reduce){ .tkr .tk-tx{animation:none; padding-left:0;} .tkr .tk-vp{white-space:normal; -webkit-mask-image:none; mask-image:none;} }
   .mr-card{background:var(--card); border:1px solid var(--line-soft); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;}
   .mr-h{font-size:15px; font-weight:700; margin-bottom:8px;} .mr-sub{font-size:12px; color:var(--text-dim); font-weight:400; margin-left:6px;}
-  .mr-kpis{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
+  .mr-kpis{display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;}
+  .eh-h{font-family:'Sora',sans-serif; font-weight:700; font-size:14.5px; margin:16px 0 8px;}
+  .eh-h:first-child{margin-top:4px;}
+  .eh-h span{font-size:12px; font-weight:500; color:var(--text-dim); margin-left:6px;}
   .mr-kpis div{background:var(--field); border:1px solid var(--line-soft); border-radius:10px; padding:9px 6px; text-align:center;}
   .mr-kpis b{display:block; font-size:16px;} .mr-kpis span{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
-  .mr-ranks{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
+  .mr-ranks{display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;}
   .mr-rank{background:var(--field); border:1px solid var(--line-soft); border-radius:10px; padding:9px 6px; text-align:center;}
   .mr-rank span{display:block; font-size:11px; color:var(--text-dim);} .mr-rank b{display:block; font-size:18px; color:var(--accent-text); margin:2px 0;}
   .mr-rank small{font-size:10.5px; color:var(--text-dim);}
@@ -604,7 +607,7 @@
 
   <div class="view" id="view-exam-history">
     <div class="section-title">My exam results</div>
-    <div class="section-sub">Your results in live exams, newest first.</div>
+    <div class="section-sub">Your results in live exams and previous year papers, newest first.</div>
     <div id="eh-list"></div>
   </div>
 
@@ -1400,7 +1403,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-14.5';
+const APP_VERSION = '2026-10-14.6';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3134,7 +3137,8 @@ document.getElementById('btn-mock-view-review').addEventListener('click', () => 
   renderMockReview(mockQuestions, mockAnswers);
   showView('view-mock-review');
 });
-document.getElementById('btn-mock-review-back').addEventListener('click', () => showView('view-mock-result'));
+let mockReviewReturn = 'view-mock-result';
+document.getElementById('btn-mock-review-back').addEventListener('click', () => { const v = mockReviewReturn; mockReviewReturn = 'view-mock-result'; showView(v); });
 
 function renderMockReview(questions, answers){
   const list = document.getElementById('mock-review-list');
@@ -4598,9 +4602,23 @@ document.getElementById('menu-exam-history').addEventListener('click', async () 
   try{
     const r = await rpc('student_exam_history', { p_mobile: session.mobile, p_password: session.password });
     if (!r || !r.ok){ el.innerHTML = '<p style="color:var(--text-dim);">Unable to load your results. Please try again.</p>'; return; }
-    if (!r.rows.length){ el.innerHTML = '<p style="color:var(--text-dim);">No exam results yet. Your result appears here after you submit a live exam.</p>'; return; }
     const esc2 = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    el.innerHTML = r.rows.map(x => {
+    const pyq = r.pyq || [];
+    const pyqHtml = pyq.length ? `<div class="eh-h">📜 Previous year papers <span>${pyq.length} attempted</span></div>` + pyq.map(x => {
+      const d = x.at ? new Date(x.at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+      const col = x.pct >= 60 ? '#5dcaa5' : x.pct >= 40 ? '#f5b041' : '#ff8a7d';
+      return `<div class="eh-pyq" data-id="${x.id}" style="background:var(--card); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer;">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+          <div style="font-weight:600;">${esc2(x.exam)} <span style="font-weight:500; color:var(--text-dim);">· ${esc2(x.paper || '')}</span></div>
+          <span style="font-size:12px; font-weight:700; color:${col};">${x.pct ?? 0}%</span>
+        </div>
+        <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${esc2(d)} · Correct ${x.correct}/${x.total_q} · Wrong ${x.wrong} · <b style="color:var(--text);">${x.marks}/${x.max} marks</b> · <span style="color:var(--accent-text);">Review ›</span></div>
+      </div>`; }).join('') : '';
+    if (!r.rows.length){
+      el.innerHTML = '<div class="eh-h">📝 Live exams</div><p style="color:var(--text-dim);">No live exam results yet. Your result appears here after you submit a live exam.</p>' + pyqHtml;
+      return;
+    }
+    el.innerHTML = '<div class="eh-h">📝 Live exams</div>' + r.rows.map(x => {
       const d0 = x.submitted_at ? new Date(x.submitted_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
       if (x.hidden) return `<div style="background:var(--card); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; margin-bottom:10px;">
         <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
@@ -4617,8 +4635,19 @@ document.getElementById('menu-exam-history').addEventListener('click', async () 
           <span style="font-size:11px; font-weight:700; padding:3px 9px; border-radius:10px; background:${pass ? '#16a08533' : '#e74c3c33'}; color:${pass ? '#5dcaa5' : '#ff8a7d'};">${esc2(x.exam_status || '')}</span>
         </div>
         <div style="font-size:13px; color:var(--text-dim); margin-top:6px;">${esc2(d)} · Correct ${x.correct ?? 0}/${x.total_q ?? 0} · Wrong ${x.wrong ?? 0} · <b style="color:var(--text);">${x.final_marks ?? 0} marks</b>${x.pct !== null && x.pct !== undefined ? ` · ${x.pct}%` : ''}</div>
-      </div>`; }).join('');
+      </div>`; }).join('') + pyqHtml;
   }catch(e){ el.innerHTML = '<p style="color:var(--text-dim);">Connection error. Please try again.</p>'; }
+});
+// open a PYQ attempt's answers + solutions
+document.getElementById('eh-list').addEventListener('click', async (e) => {
+  const c = e.target.closest('.eh-pyq'); if (!c) return;
+  try{
+    const rows2 = await rpc('get_mock_test_detail', { p_mobile: session.mobile, p_password: session.password, p_id: parseInt(c.dataset.id, 10) });
+    const detail = rows2 && rows2[0]; if (!detail) return;
+    renderMockReview(detail.questions, detail.answers);
+    mockReviewReturn = 'view-exam-history';
+    showView('view-mock-review');
+  }catch(err){ toast('Unable to load this paper.', 'err'); }
 });
 
 document.getElementById('btn-refresh').addEventListener('click', () => {
@@ -4656,7 +4685,7 @@ document.getElementById('menu-my-report').addEventListener('click', async () => 
   }catch(_e){ el.innerHTML = '<p style="color:var(--text-dim);">Connection error. Please try again.</p>'; }
 });
 function mrRender(){
-  const r = myRep, L = r.live || {}, M = r.mock || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {}, rules = r.rank_rules || {};
+  const r = myRep, L = r.live || {}, M = r.mock || {}, Q = r.pyq || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {}, rules = r.rank_rules || {};
   document.getElementById('mr-out').innerHTML = `
     <div class="mr-card">
       <div class="mr-kpis">
@@ -4665,13 +4694,15 @@ function mrRender(){
         <div><b>${mrPct(L.avg_pct)}</b><span>Avg live score</span></div>
         <div><b>${M.count || 0}</b><span>Mock tests</span></div>
         <div><b>${mrPct(M.avg_pct)}</b><span>Avg mock score</span></div>
+        <div><b>${Q.count || 0}</b><span>PYQ papers</span></div>
+        <div><b>${mrPct(Q.avg_pct)}</b><span>Avg PYQ score</span></div>
         <div><b>${P.questions || 0}</b><span>Practice questions</span></div>
         <div><b>${mrPct(P.accuracy)}</b><span>Practice accuracy</span></div>
         <div><b>${C.points || 0}</b><span>Challenge points</span></div>
       </div>
     </div>
     <div class="mr-card"><div class="mr-h">🏅 My rank in ${mrEsc(r.institute || 'my institute')}</div>
-      <div class="mr-ranks">${mrRank(R.live, 'Live tests', 'after your first live test')}${mrRank(R.mock, 'Mock tests', `after ${rules.mock_min || 2} mock tests`)}
+      <div class="mr-ranks">${mrRank(R.live, 'Live tests', 'after your first live test')}${mrRank(R.mock, 'Mock tests', `after ${rules.mock_min || 2} mock tests`)}${mrRank(R.pyq, 'PYQ papers', `after ${rules.pyq_min || 2} papers`)}
         ${mrRank(R.practice, 'Practice', `after ${rules.practice_min || 50} questions`)}${mrRank(R.challenge, 'Daily challenge', 'after your first points')}</div>
       <div class="mr-note">Only your own rank is shown. Other students' names and marks are private.</div></div>
 
@@ -4685,6 +4716,14 @@ function mrRender(){
       ${(r.mock_subjects || []).length ? mrTable(['Subject', 'Questions', 'Attempted', 'Correct', 'Score'],
         r.mock_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td><b>${mrPct(x.pct)}</b></td></tr>`)) : '<p class="mr-empty">No mock tests yet.</p>'}</div>
 
+    <div class="mr-card"><div class="mr-h">📜 Previous year papers <span class="mr-sub">${Q.count || 0} attempted · ${Q.questions || 0} questions · ${Q.correct || 0} correct · best ${mrPct(Q.best_pct)}</span></div>
+      ${(r.pyq_exams || []).length ? mrTable(['Exam', 'Papers', 'Avg score', 'Best'],
+        r.pyq_exams.map(x => `<tr><td>${mrEsc(x.exam)}</td><td>${x.tests}</td><td><b>${mrPct(x.avg_pct)}</b></td><td>${mrPct(x.best_pct)}</td></tr>`)) : '<p class="mr-empty">No previous year papers yet.</p>'}
+      ${(r.pyq_subjects || []).length ? '<div style="height:10px;"></div>' + mrTable(['Subject', 'Questions', 'Attempted', 'Correct', 'Score'],
+        r.pyq_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td><b>${mrPct(x.pct)}</b></td></tr>`)) : ''}
+      ${(Q.rows || []).length ? '<div style="height:10px;"></div>' + mrTable(['Paper', 'Date', 'Marks', 'Correct', 'Score'],
+        Q.rows.slice(0, 20).map(x => `<tr><td>${mrEsc(x.exam)}<br><small style="color:var(--text-dim);">${mrEsc(x.paper || '')}</small></td><td>${mrDate(x.at)}</td><td><b>${mrVal(x.marks)}</b>/${mrVal(x.max)}</td><td>${x.correct}/${x.total_q}</td><td>${mrPct(x.pct)}</td></tr>`)) : ''}</div>
+
     <div class="mr-card"><div class="mr-h">📚 Practice <span class="mr-sub">${P.sessions || 0} sessions · ${P.attempted || 0} attempted · ${P.correct || 0} correct</span></div>
       ${(r.practice_subjects || []).length ? mrTable(['Subject', 'Questions', 'Attempted', 'Correct', 'Accuracy'],
         r.practice_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td><b>${mrPct(x.accuracy)}</b></td></tr>`)) : '<p class="mr-empty">No practice yet.</p>'}</div>
@@ -4697,21 +4736,23 @@ function mrRender(){
   document.getElementById('mr-print').addEventListener('click', mrPrint);
 }
 function mrPrint(){
-  const r = myRep, s = r.student || {}, L = r.live || {}, M = r.mock || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {};
+  const r = myRep, s = r.student || {}, L = r.live || {}, M = r.mock || {}, Q = r.pyq || {}, P = r.practice || {}, C = r.challenge || {}, R = r.ranks || {};
   const t = (h, rows) => `<table><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.join('')}</table>`;
   const rk = x => x ? `#${x.rank} of ${x.of}` : '—';
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report card — ${mrEsc(s.name)}</title><style>
     @page{ size:A4; margin:14mm; } body{ font-family:Arial, sans-serif; color:#1b2a41; font-size:12px; }
     h1{ font-size:19px; margin:0; } h2{ font-size:14px; margin:16px 0 6px; } .sub{ color:#666; }
-    .k{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:12px 0; } .k div{ border:1px solid #dfe5ee; border-radius:8px; padding:8px; text-align:center; } .k b{ display:block; font-size:16px; }
+    .k{ display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin:12px 0; } .k div{ border:1px solid #dfe5ee; border-radius:8px; padding:8px; text-align:center; } .k b{ display:block; font-size:16px; }
     table{ width:100%; border-collapse:collapse; } th{ background:#1b2a41; color:#fff; padding:5px; text-align:left; font-size:11px; } td{ padding:5px; border-bottom:1px solid #e3e7ee; }
     tr{ page-break-inside:avoid; }</style></head><body>
     <h1>${mrEsc(r.institute || '')} — Student report card</h1>
     <div class="sub">${mrEsc(s.name)} · ${mrEsc(s.mobile)}${s.class_name ? ' · ' + mrEsc(s.class_name) : ''} · generated ${mrEsc(new Date().toLocaleString('en-IN'))}</div>
-    <div class="k"><div>Live tests<b>${L.count || 0}</b>avg ${mrPct(L.avg_pct)} · rank ${rk(R.live)}</div><div>Mock tests<b>${M.count || 0}</b>avg ${mrPct(M.avg_pct)} · rank ${rk(R.mock)}</div>
+    <div class="k"><div>Live tests<b>${L.count || 0}</b>avg ${mrPct(L.avg_pct)} · rank ${rk(R.live)}</div><div>Mock tests<b>${M.count || 0}</b>avg ${mrPct(M.avg_pct)} · rank ${rk(R.mock)}</div><div>PYQ papers<b>${Q.count || 0}</b>avg ${mrPct(Q.avg_pct)} · rank ${rk(R.pyq)}</div>
       <div>Practice<b>${P.questions || 0} Qs</b>${mrPct(P.accuracy)} · rank ${rk(R.practice)}</div><div>Challenge<b>${C.points || 0} pts</b>rank ${rk(R.challenge)}</div></div>
     <h2>Live tests</h2>${(L.rows || []).length ? t(['Exam', 'Date', 'Marks', 'Correct', 'Score', 'Result'], L.rows.map(x => `<tr><td>${mrEsc(x.exam)}</td><td>${mrDate(x.at)}</td><td>${mrVal(x.marks)}</td><td>${x.correct}/${x.total_q}</td><td>${mrPct(x.pct)}</td><td>${mrEsc(x.status || '')}</td></tr>`)) : '<p>None.</p>'}
     <h2>Mock tests — subject-wise</h2>${(r.mock_subjects || []).length ? t(['Subject', 'Questions', 'Correct', 'Score'], r.mock_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.correct}</td><td>${mrPct(x.pct)}</td></tr>`)) : '<p>None.</p>'}
+    <h2>Previous year papers</h2>${(r.pyq_exams || []).length ? t(['Exam', 'Papers', 'Avg score', 'Best'], r.pyq_exams.map(x => `<tr><td>${mrEsc(x.exam)}</td><td>${x.tests}</td><td>${mrPct(x.avg_pct)}</td><td>${mrPct(x.best_pct)}</td></tr>`)) : '<p>None.</p>'}
+    ${(Q.rows || []).length ? t(['Paper', 'Date', 'Marks', 'Correct', 'Score'], Q.rows.slice(0, 20).map(x => `<tr><td>${mrEsc(x.exam)} · ${mrEsc(x.paper || '')}</td><td>${mrDate(x.at)}</td><td>${mrVal(x.marks)}/${mrVal(x.max)}</td><td>${x.correct}/${x.total_q}</td><td>${mrPct(x.pct)}</td></tr>`)) : ''}
     <h2>Practice — subject-wise</h2>${(r.practice_subjects || []).length ? t(['Subject', 'Questions', 'Attempted', 'Correct', 'Accuracy'], r.practice_subjects.map(x => `<tr><td>${mrEsc(x.subject)}</td><td>${x.questions}</td><td>${x.attempted}</td><td>${x.correct}</td><td>${mrPct(x.accuracy)}</td></tr>`)) : '<p>None.</p>'}
     </body></html>`;
   const w = window.open('', '_blank'); if (!w){ toast('Please allow pop-ups to print.'); return; }
