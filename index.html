@@ -258,6 +258,13 @@
   .ch-result{border-radius:var(--radius-sm); padding:10px 12px; font-size:13.5px; font-weight:600; text-align:center; margin-top:10px;}
   .ch-result.ok{background:#0b3d1f; color:#27ae60;}
   .ch-result.bad{background:#3d0b0b; color:#e74c3c;}
+  .chs-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:22px 0 10px; cursor:pointer; padding:12px 14px; border-radius:12px; background:rgba(155,89,182,.12); border:1px solid rgba(155,89,182,.45);}
+  .chs-head b{font-family:'Sora',sans-serif; font-size:14.5px;}
+  .chs-head span{font-size:12px; opacity:.8;}
+  .chs-you{font-size:12.5px; margin:6px 0 2px; opacity:.9;}
+  .chs-sol{margin-top:10px; padding:11px 13px; border-radius:var(--radius-sm); background:rgba(52,152,219,.10); border-left:3px solid #5dade2; font-size:13.5px; line-height:1.6; white-space:pre-line;}
+  .chs-sol.none{background:var(--field); border-left-color:var(--line-soft); opacity:.75; font-style:italic;}
+  .chs-sol-t{font-weight:700; color:#5dade2; margin-bottom:4px; font-style:normal;}
   .lb-tabs{display:flex; gap:8px; margin:14px 0 12px;}
   .lb-tab{flex:1; text-align:center; padding:9px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; background:var(--field-2); color:var(--text-dim);}
   .lb-tab.active{background:var(--purple); color:#fff;}
@@ -971,6 +978,7 @@
     <div class="section-title">Today's challenges</div>
     <div class="section-sub">Answer fast for more points — max 5 points per question.</div>
     <div id="challenge-list"><div class="spin"></div></div>
+    <div id="ch-solutions"></div>
     <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
@@ -1328,7 +1336,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-13.1';
+const APP_VERSION = '2026-10-14.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -2943,6 +2951,7 @@ async function loadChallenges(){
       rpc('get_todays_challenges', { p_mobile: session.mobile, p_password: session.password }),
       rpc('get_challenge_ends', { p_mobile: session.mobile, p_password: session.password }).catch(() => null)
     ]);
+    loadChallengeSolutions();
     chChallenges = list;
     chEnds = (ends && ends.ok) ? ends.ends || {} : {};
     chClockOffset = (ends && ends.server_now) ? new Date(ends.server_now).getTime() - Date.now() : 0;
@@ -2950,6 +2959,43 @@ async function loadChallenges(){
   }catch(err){
     listEl.innerHTML = '<div class="empty-state">Unable to load today\'s challenges. Please try again.</div>';
   }
+}
+
+// Previous (closed) challenge set — answers + solutions
+let chsOpen = false;
+async function loadChallengeSolutions(){
+  const box = document.getElementById('ch-solutions');
+  try{
+    const r = await rpc('get_challenge_solutions', { p_mobile: session.mobile, p_password: session.password });
+    renderChallengeSolutions(r && r.ok ? r : null);
+  }catch(e){ box.innerHTML = ''; }
+}
+function renderChallengeSolutions(r){
+  const box = document.getElementById('ch-solutions');
+  const items = (r && r.items) || [];
+  if (!items.length){ box.innerHTML = ''; return; }
+  const day = r.day ? new Date(r.day + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+  const got = items.filter(x => x.is_correct).length;
+  const tags = ['A','B','C','D'];
+  box.innerHTML = `<div class="chs-head" id="chs-toggle"><div><b>📘 Previous challenge — answers & solutions</b><br><span>${esc(day)} · ${items.length} question${items.length === 1 ? '' : 's'} · You got ${got} correct</span></div><span style="font-size:18px">${chsOpen ? '▲' : '▼'}</span></div>
+    <div id="chs-body" style="display:${chsOpen ? 'block' : 'none'}">${items.map((x, n) => {
+      const opts = (x.options || []).map((o, i) => o ? `<div class="ch-opt disabled ${i === x.correct_index ? 'correct' : (x.attempted && i === x.selected_option && !x.is_correct ? 'wrong' : '')}" style="opacity:1">${tags[i]}. ${esc(o)}</div>` : '').join('');
+      const you = !x.attempted ? '⚪ You did not attempt this question'
+        : (x.is_correct ? `✅ You answered correctly · +${x.points || 0} points` : `❌ Your answer: ${tags[x.selected_option] || '-'} · Correct answer: ${tags[x.correct_index]}`);
+      return `<div class="ch-card">
+        <div class="ch-badges"><span class="ch-badge topic">Q${n + 1} · 📚 ${esc(x.topic)}</span></div>
+        ${x.question ? `<div class="ch-q">${esc(x.question)}</div>` : ''}
+        ${x.image_url ? `<img src="${esc(x.image_url)}" alt="Question image" style="max-width:100%; max-height:280px; border-radius:10px; margin:8px 0; display:block;">` : ''}
+        ${opts}
+        <div class="chs-you">${you}</div>
+        ${x.solution ? `<div class="chs-sol"><div class="chs-sol-t">💡 Solution</div>${esc(x.solution)}</div>` : `<div class="chs-sol none">Solution not available for this question.</div>`}
+      </div>`;
+    }).join('')}</div>`;
+  document.getElementById('chs-toggle').onclick = () => {
+    chsOpen = !chsOpen;
+    document.getElementById('chs-body').style.display = chsOpen ? 'block' : 'none';
+    document.querySelector('#chs-toggle > span').textContent = chsOpen ? '▲' : '▼';
+  };
 }
 
 function renderChallenges(){
