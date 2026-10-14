@@ -190,6 +190,14 @@
   .exam-head{display:flex; align-items:center; justify-content:space-between; padding:14px 0 6px;}
   .qcount{font-size:13px; font-weight:600; color:var(--text-dim);}
   .subjtag{font-size:11px; color:var(--text-mute);}
+  .mock-head-r{display:flex; align-items:center; gap:10px;}
+  .btn-pause{padding:6px 12px; border-radius:9px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid rgba(243,156,18,.6); background:rgba(243,156,18,.12); color:#f5b041;}
+  .paused-card{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 14px; margin:4px 0 14px; border-radius:12px; background:rgba(243,156,18,.12); border:1px solid rgba(243,156,18,.55);}
+  .paused-card b{font-family:'Sora',sans-serif; font-size:14px;}
+  .paused-card .pc-s{font-size:12px; opacity:.85; margin-top:3px;}
+  .paused-card .pc-b{display:flex; gap:8px;}
+  .paused-card button{padding:8px 14px; border-radius:9px; font-weight:700; font-size:13px; cursor:pointer; border:1px solid var(--line-soft); background:var(--field); color:var(--text);}
+  .paused-card button.go{background:#f39c12; border-color:#f39c12; color:#2b1a00;}
   .progress-bar{height:6px; background:var(--field-2); border-radius:6px; overflow:hidden; margin-bottom:14px;}
   .progress-fill{height:100%; background:var(--accent); transition:width .25s;}
   .qtext{font-size:15.5px; line-height:1.6; margin-bottom:16px; font-weight:500;}
@@ -603,6 +611,7 @@
   <div class="view" id="view-home">
     <div class="section-title">Welcome</div>
     <div class="section-sub">Choose what you'd like to do.</div>
+    <div class="paused-slot"></div>
     <div id="stu-tkr"></div>
     <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:10px;">📤 Share this app</button>
     <button class="btn btn-ghost" id="btn-install-home" style="display:none; margin-bottom:16px;">📲 Install app</button>
@@ -899,6 +908,7 @@
   <div class="view" id="view-mock-setup">
     <div class="section-title">Build your mock test</div>
     <div class="section-sub">Pick topics and how many questions from each, then set your timing.</div>
+    <div class="paused-slot"></div>
 
     <div class="pcard">
       <div class="lbl">Subject</div>
@@ -941,6 +951,7 @@
   <div class="view" id="view-pyq">
     <div class="section-title">Previous year questions</div>
     <div class="section-sub">Real questions from past exams — attempt a full paper or practise topic-wise.</div>
+    <div class="paused-slot"></div>
     <div class="pcard">
       <div class="lbl">Exam</div>
       <div class="pyq-chips" id="pyq-exams"><div class="spin"></div></div>
@@ -977,7 +988,7 @@
 
   <!-- ============ MOCK TEST: EXAM ============ -->
   <div class="view" id="view-mock-exam">
-    <div class="exam-head"><div class="qcount" id="mock-q-count">Question 1/10</div><div class="subjtag" id="mock-timer">—</div></div>
+    <div class="exam-head"><div class="qcount" id="mock-q-count">Question 1/10</div><div class="mock-head-r"><div class="subjtag" id="mock-timer">—</div><button class="btn-pause" id="btn-mock-pause" type="button">⏸ Pause</button></div></div>
     <div class="progress-bar"><div class="progress-fill" id="mock-progress-fill" style="width:0%"></div></div>
     <div class="di-box" id="mock-di-box" style="display:none;"></div>
     <div class="qtext" id="mock-q-text"></div>
@@ -1389,7 +1400,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-14.4';
+const APP_VERSION = '2026-10-14.5';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -1463,6 +1474,7 @@ function showView(id){
 
   updateTopBack(id);
   currentViewId = id;
+  renderPausedCards();
   document.getElementById('btn-refresh').style.display = (session && REFRESHABLE_VIEWS[id]) ? 'inline-flex' : 'none';
   window.scrollTo(0,0);
 }
@@ -2675,6 +2687,7 @@ document.getElementById('mock-neg-off').addEventListener('click', () => {
 });
 
 document.getElementById('btn-mock-start').addEventListener('click', async () => {
+  if (!mockConfirmDiscard()) return;
   const errEl = document.getElementById('mock-setup-error');
   errEl.textContent = '';
 
@@ -2836,6 +2849,7 @@ function pyqUpdateStart(setTime){
   document.getElementById('pyq-neg-off').classList.toggle('sel', k === 'off');
 }));
 document.getElementById('btn-pyq-start').addEventListener('click', async () => {
+  if (!mockConfirmDiscard()) return;
   const ex = pyqCur(); const errEl = document.getElementById('pyq-err'); errEl.textContent = '';
   const btn = document.getElementById('btn-pyq-start'); btn.disabled = true;
   try{
@@ -2879,9 +2893,79 @@ document.getElementById('btn-pyq-start').addEventListener('click', async () => {
   finally{ btn.disabled = false; }
 });
 
+
+/* ---------------- PAUSE / RESUME (mock test + PYQ) ----------------
+   State is kept on this device, so the student can come back later and
+   continue from the same question with the same time left. */
+function mockPauseKey(){ return 'mock_paused_' + (session && session.mobile ? session.mobile : ''); }
+function mockSaveState(){
+  if (!session || !mockConfig || !mockQuestions || !mockQuestions.length) return;
+  try{
+    localStorage.setItem(mockPauseKey(), JSON.stringify({
+      v: 1, q: mockQuestions, a: mockAnswers, i: mockCurIndex, c: mockConfig,
+      left: mockOverallSecondsLeft, perq: mockPerQRemaining,
+      elapsed: Math.round((Date.now() - mockStartTime) / 1000), at: Date.now() }));
+  }catch(e){ /* storage full / blocked — pause still works for this session */ }
+}
+function mockGetPaused(){
+  if (!session) return null;
+  try{ const d = JSON.parse(localStorage.getItem(mockPauseKey()) || 'null'); return d && d.v === 1 && d.q && d.q.length ? d : null; }
+  catch(e){ return null; }
+}
+function mockClearPaused(){ try{ localStorage.removeItem(mockPauseKey()); }catch(e){} }
+function mockPausedLabel(d){ return (d.c.topics || []).map(t => t.topic ? `${t.subject} → ${t.topic}` : t.subject).join(', ') || 'Mock test'; }
+function mockConfirmDiscard(){
+  const d = mockGetPaused();
+  if (!d) return true;
+  if (!confirm(`You have a paused test:\n${mockPausedLabel(d)}\n\nStarting a new test will discard it. Continue?`)) return false;
+  mockClearPaused(); return true;
+}
+function renderPausedCards(){
+  const slots = document.querySelectorAll('.paused-slot');
+  const d = mockGetPaused();
+  slots.forEach(el => {
+    if (!d){ el.innerHTML = ''; return; }
+    const secs = d.c.timingMode === 'overall' ? d.left : (d.perq || [])[d.i];
+    const t = d.c.timingMode === 'overall' ? `${Math.floor(Math.max(0, secs) / 60)}:${String(Math.max(0, secs) % 60).padStart(2, '0')} left` : 'per-question timer';
+    const done = (d.a || []).filter(x => x !== -1).length;
+    el.innerHTML = `<div class="paused-card"><div><b>⏸ Paused test</b><div class="pc-s">${esc(mockPausedLabel(d))}</div>
+      <div class="pc-s">Question ${d.i + 1}/${d.q.length} · ${done} answered · ${t}</div></div>
+      <div class="pc-b"><button class="go pc-resume" type="button">▶ Resume</button><button class="pc-discard" type="button">Discard</button></div></div>`;
+  });
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.pc-resume')) mockResume();
+  else if (e.target.closest('.pc-discard')){
+    if (!confirm('Discard this paused test? Your answers in it will be lost.')) return;
+    mockClearPaused(); renderPausedCards();
+  }
+});
+function mockResume(){
+  const d = mockGetPaused(); if (!d) return;
+  mockQuestions = d.q; mockAnswers = d.a; mockCurIndex = Math.min(d.i, d.q.length - 1); mockConfig = d.c;
+  mockOverallSecondsLeft = d.left; mockPerQRemaining = d.perq || d.q.map(() => 60);
+  mockStartTime = Date.now() - (d.elapsed || 0) * 1000;
+  document.getElementById('btn-mock-again').textContent = mockConfig.pyq ? '📜 Back to previous year papers' : 'Build another mock test';
+  showView('view-mock-exam');
+  renderMockQuestion();
+  startMockTimer();
+}
+document.getElementById('btn-mock-pause').addEventListener('click', () => {
+  if (!confirm('Pause this test?\n\nThe timer stops now. You can resume later from this same question with the same time left.')) return;
+  if (mockTimerIntervalId){ clearInterval(mockTimerIntervalId); mockTimerIntervalId = null; }
+  mockSaveState();
+  showView(mockConfig && mockConfig.pyq ? 'view-pyq' : 'view-home');
+  if (mockConfig && mockConfig.pyq) loadPyq();
+  toast('Test paused. Tap Resume when you are ready.');
+});
+window.addEventListener('pagehide', () => { if (currentViewId === 'view-mock-exam') mockSaveState(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && currentViewId === 'view-mock-exam') mockSaveState(); });
+
 function startMockTimer(){
   if (mockTimerIntervalId) clearInterval(mockTimerIntervalId);
+  let saveTick = 0;
   mockTimerIntervalId = setInterval(() => {
+    if (++saveTick % 10 === 0) mockSaveState();   // autosave: app band ho jaaye to bhi resume ho sake
     if (mockConfig.timingMode === 'overall'){
       mockOverallSecondsLeft--;
       updateMockTimerDisplay();
@@ -3003,6 +3087,7 @@ document.getElementById('btn-mock-end').addEventListener('click', () => {
 
 async function endMockTest(){
   if (mockTimerIntervalId){ clearInterval(mockTimerIntervalId); mockTimerIntervalId = null; }
+  mockClearPaused();
 
   let correct = 0, wrong = 0, notAttempted = 0;
   mockQuestions.forEach((q, i) => {
