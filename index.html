@@ -258,7 +258,7 @@
   .ch-result{border-radius:var(--radius-sm); padding:10px 12px; font-size:13.5px; font-weight:600; text-align:center; margin-top:10px;}
   .ch-result.ok{background:#0b3d1f; color:#27ae60;}
   .ch-result.bad{background:#3d0b0b; color:#e74c3c;}
-  .chs-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:22px 0 10px; cursor:pointer; padding:12px 14px; border-radius:12px; background:rgba(155,89,182,.12); border:1px solid rgba(155,89,182,.45);}
+  .chs-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:4px 0 14px; cursor:pointer; padding:12px 14px; border-radius:12px; background:rgba(155,89,182,.12); border:1px solid rgba(155,89,182,.45);}
   .chs-head b{font-family:'Sora',sans-serif; font-size:14.5px;}
   .chs-head span{font-size:12px; opacity:.8;}
   .chs-you{font-size:12.5px; margin:6px 0 2px; opacity:.9;}
@@ -975,10 +975,10 @@
 
   <!-- ============ CHALLENGE: LIST ============ -->
   <div class="view" id="view-ch-list">
+    <div id="ch-solutions"></div>
     <div class="section-title">Today's challenges</div>
     <div class="section-sub">Answer fast for more points — max 5 points per question.</div>
     <div id="challenge-list"><div class="spin"></div></div>
-    <div id="ch-solutions"></div>
     <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
   </div>
 
@@ -1336,7 +1336,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-14.1';
+const APP_VERSION = '2026-10-14.2';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
