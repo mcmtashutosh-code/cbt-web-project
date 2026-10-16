@@ -180,6 +180,9 @@
   .count-grid{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
   .count-chip{padding:10px 16px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; border:1px solid var(--line-soft); color:var(--text-dim); background:var(--field);}
   .pyq-chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .beta{display:inline-block; vertical-align:middle; margin-left:6px; padding:1px 7px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:.03em; background:#f39c12; color:#2b1a00; line-height:1.5;}
+  .beta-note{font-size:12.5px; color:var(--text-dim); margin:-6px 0 12px;}
+  .beta-note a{color:var(--accent-text); cursor:pointer; text-decoration:underline;}
   .row3-tabs{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;}
   .pyq-chip{padding:9px 14px; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; border:1px solid var(--line-soft); color:var(--text-dim); background:var(--field);}
   .pyq-chip small{font-weight:600; opacity:.75; margin-left:4px;}
@@ -634,11 +637,11 @@
       </div>
       <div class="menu-card" id="menu-pyq">
         <div class="mi">📜</div>
-        <div><div class="mt">Previous year questions</div><div class="ms">SSC, Bank, Railway &amp; more — full papers or topic-wise</div></div>
+        <div><div class="mt">Previous year questions<span class="beta">Beta</span></div><div class="ms">SSC, Bank, Railway &amp; more — full papers or topic-wise</div></div>
       </div>
       <div class="menu-card" id="menu-ca">
         <div class="mi">📰</div>
-        <div><div class="mt">Current affairs</div><div class="ms">Daily quiz, monthly and yearly tests</div></div>
+        <div><div class="mt">Current affairs<span class="beta">Beta</span></div><div class="ms">Daily quiz, monthly and yearly tests</div></div>
       </div>
       <div class="menu-card" id="menu-my-report">
         <div class="mi">📊</div>
@@ -957,8 +960,9 @@
 
   <!-- ============ PYQ ============ -->
   <div class="view" id="view-pyq">
-    <div class="section-title">Previous year questions</div>
+    <div class="section-title">Previous year questions<span class="beta">Beta</span></div>
     <div class="section-sub">Real questions from past exams — attempt a full paper or practise topic-wise.</div>
+    <div class="beta-note">This section is new and still improving. Found a problem or have an idea? <a class="js-beta-fb">Send feedback</a></div>
     <div class="paused-slot"></div>
     <div class="pcard">
       <div class="lbl">Exam</div>
@@ -996,8 +1000,9 @@
 
   <!-- ============ CURRENT AFFAIRS ============ -->
   <div class="view" id="view-ca">
-    <div class="section-title">Current affairs</div>
+    <div class="section-title">Current affairs<span class="beta">Beta</span></div>
     <div class="section-sub">Take the daily quiz, then test yourself on the whole month or year.</div>
+    <div class="beta-note">This section is new and still improving. Found a problem or have an idea? <a class="js-beta-fb">Send feedback</a></div>
     <div class="paused-slot"></div>
     <div class="row3-tabs" style="margin-bottom:12px;">
       <div class="pyq-chip sel" id="ca-tab-day" style="text-align:center;">📅 Daily</div>
@@ -1439,7 +1444,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-16.1';
+const APP_VERSION = '2026-10-16.2';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3007,6 +3012,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    Daily = all questions of one date; Monthly / Yearly = a chosen number of
    questions picked at random from that month / year. Uses the mock-test runner. */
 let caCat = null, caMode = 'day', caSel = null;
+document.querySelectorAll('.js-beta-fb').forEach(a => a.addEventListener('click', () => document.getElementById('menu-feedback').click()));
 document.getElementById('menu-ca').addEventListener('click', () => { showView('view-ca'); loadCa(); });
 document.getElementById('btn-ca-history').addEventListener('click', loadMockHistory);
 const caFmtDay = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
