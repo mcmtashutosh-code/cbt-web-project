@@ -377,7 +377,9 @@
   .ex-zoom button:disabled{opacity:.4; cursor:default;}
   #ex-sec-top{margin:10px 0 0;}
   #ex-sec-top:empty{display:none;}
-  .wa-join{display:flex; align-items:center; justify-content:center; gap:8px; background:#1faa53; color:#fff; text-decoration:none; margin-bottom:10px; border:none;}
+  .wa-row{display:flex; gap:8px; margin-bottom:10px;}
+  .wa-join{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; background:#1faa53; color:#fff; text-decoration:none; margin:0; border:none;}
+  .wa-qr-btn{width:auto; flex:none; margin:0; padding:0 16px; background:transparent; border:1.5px solid #1faa53; color:#5fd68c; font-weight:800;}
   .wa-join:hover{background:#25d366; color:#fff;}
   #share-modal{position:fixed; inset:0; z-index:10040; background:rgba(5,10,18,.78); display:none; align-items:center; justify-content:center; padding:16px;}
   #share-modal.open{display:flex;}
@@ -632,9 +634,12 @@
     <div class="section-sub">Choose what you'd like to do.</div>
     <div class="paused-slot"></div>
     <div id="stu-tkr"></div>
-    <a class="btn wa-join" id="btn-wa-join" href="#" target="_blank" rel="noopener" style="display:none;">
+    <div class="wa-row" id="wa-row" style="display:none;">
+    <a class="btn wa-join" id="btn-wa-join" href="#" target="_blank" rel="noopener">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3Z"/></svg>
       <span id="wa-join-text">Join our WhatsApp channel</span></a>
+    <button type="button" class="btn wa-qr-btn" id="btn-wa-qr" aria-label="Show WhatsApp QR code">QR</button>
+    </div>
     <button class="btn btn-ghost" id="btn-share-app" style="margin-bottom:10px;">📤 Share this app</button>
     <button class="btn btn-ghost" id="btn-install-home" style="display:none; margin-bottom:16px;">📲 Install app</button>
     <div class="menu-grid">
@@ -1296,8 +1301,8 @@
 <div id="share-modal" role="dialog" aria-modal="true" aria-labelledby="sh-title">
   <div class="sh-card">
     <div class="sh-head"><b id="sh-title">Share this app</b><button type="button" id="sh-close" aria-label="Close">✕</button></div>
-    <img id="sh-qr" alt="QR code to open the portal">
-    <p class="sh-note">Friends can scan this QR with their phone camera to open the portal and register. Save it or send it on WhatsApp.</p>
+    <img id="sh-qr" alt="QR code">
+    <p class="sh-note" id="sh-note">Friends can scan this QR with their phone camera to open the portal and register. Save it or send it on WhatsApp.</p>
     <div class="sh-btns">
       <button type="button" class="btn btn-primary" id="sh-share-qr">🖼 Share QR image</button>
       <button type="button" class="btn btn-ghost" id="sh-download">⬇ Save QR</button>
@@ -1472,7 +1477,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-17.2';
+const APP_VERSION = '2026-10-17.3';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -1654,7 +1659,7 @@ function updateTopBack(id){
 }
 
 function doLogout(){
-  waJoinAt = 0; document.getElementById('btn-wa-join').style.display = 'none';
+  waJoinAt = 0; document.getElementById('wa-row').style.display = 'none';
   Object.values(chTimers).forEach(t => t.intervalId && clearInterval(t.intervalId));
   chTimers = {};
   exExamActive = false;
@@ -1812,8 +1817,8 @@ async function loadWaJoin(force){
     if (link && /^https:\/\/(www\.)?(whatsapp\.com\/channel\/|chat\.whatsapp\.com\/|wa\.me\/)/i.test(link)){
       b.href = link;
       document.getElementById('wa-join-text').textContent = /chat\.whatsapp\.com/i.test(link) ? 'Join our WhatsApp group' : /wa\.me/i.test(link) ? 'Message us on WhatsApp' : 'Join our WhatsApp channel';
-      b.style.display = 'flex';
-    } else b.style.display = 'none';
+      document.getElementById('wa-row').style.display = 'flex';
+    } else document.getElementById('wa-row').style.display = 'none';
   }catch(e){}
 }
 (function(){
@@ -1830,27 +1835,37 @@ function shareBaseUrl(src){
   return baseUrl + '?' + q.toString();
 }
 function shareInstLabel(){ return (session && session.institute_name) || (document.querySelector('.brandbar .name') || {}).textContent || 'Our institute'; }
-let shQrCanvas = null;
-document.getElementById('btn-share-app').addEventListener('click', () => {
-  const url = shareBaseUrl('qr');
-  if (!/^https?:\/\//i.test(url)){ toast('Sharing only works on the live website, not a locally opened file.', 'err'); return; }
+let shQrCanvas = null, shMode = 'app';
+function openShareModal(mode){
+  shMode = mode;
+  const wa = mode === 'wa';
+  const url = wa ? document.getElementById('btn-wa-join').href : shareBaseUrl('qr');
+  if (!wa && !/^https?:\/\//i.test(url)){ toast('Sharing only works on the live website, not a locally opened file.', 'err'); return; }
+  document.getElementById('sh-title').textContent = wa ? 'Join us on WhatsApp' : 'Share this app';
+  document.getElementById('sh-note').textContent = wa
+    ? 'Scan this QR with your phone camera to join, or share it with your friends.'
+    : 'Friends can scan this QR with their phone camera to open the portal and register. Save it or send it on WhatsApp.';
+  document.getElementById('sh-link').style.display = wa ? 'none' : '';
   try{
-    shQrCanvas = dyQrCanvas(url, shareInstLabel().trim(), 'Scan to open the exam portal');
+    shQrCanvas = wa ? dyQrCanvas(url, shareInstLabel().trim(), 'Scan to join us on WhatsApp')
+                    : dyQrCanvas(url, shareInstLabel().trim(), 'Scan to open the exam portal');
     document.getElementById('sh-qr').src = shQrCanvas.toDataURL('image/png');
   }catch(e){ shQrCanvas = null; }
   document.getElementById('sh-share-qr').style.display = shQrCanvas ? '' : 'none';
   document.getElementById('sh-download').style.display = shQrCanvas ? '' : 'none';
   document.getElementById('share-modal').classList.add('open');
-});
+}
+document.getElementById('btn-share-app').addEventListener('click', () => openShareModal('app'));
+document.getElementById('btn-wa-qr').addEventListener('click', () => openShareModal('wa'));
 function closeShareModal(){ document.getElementById('share-modal').classList.remove('open'); }
 document.getElementById('sh-close').addEventListener('click', closeShareModal);
 document.getElementById('share-modal').addEventListener('click', e => { if (e.target.id === 'share-modal') closeShareModal(); });
-function logShare(kind){ if (session) rpc('log_app_share', { p_mobile: session.mobile, p_password: session.password, p_kind: kind }).catch(()=>{}); }
-const shFileName = () => (shareInstLabel().trim().replace(/[^A-Za-z0-9]+/g, '_') || 'portal') + '_QR.png';
+function logShare(kind){ if (shMode !== 'app') return; if (session) rpc('log_app_share', { p_mobile: session.mobile, p_password: session.password, p_kind: kind }).catch(()=>{}); }
+const shFileName = () => (shareInstLabel().trim().replace(/[^A-Za-z0-9]+/g, '_') || 'portal') + (shMode === 'wa' ? '_WhatsApp_QR.png' : '_QR.png');
 document.getElementById('sh-share-qr').addEventListener('click', async () => {
   if (!shQrCanvas) return;
   try{
-    const how = await dyQrShareImage(shQrCanvas, shFileName(), `Scan this QR to join ${shareInstLabel().trim()} on the online exam portal.`);
+    const how = await dyQrShareImage(shQrCanvas, shFileName(), shMode === 'wa' ? `Scan this QR to join ${shareInstLabel().trim()} on WhatsApp.` : `Scan this QR to join ${shareInstLabel().trim()} on the online exam portal.`);
     logShare(how === 'shared' ? 'qr_share' : 'qr_download');
     if (how === 'downloaded') toast('QR saved. Send the image to your friends.', 'ok');
   }catch(e){ /* share sheet closed */ }
