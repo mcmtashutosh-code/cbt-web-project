@@ -377,6 +377,7 @@
   .ex-zoom button:disabled{opacity:.4; cursor:default;}
   #ex-sec-top{margin:10px 0 0;}
   #ex-sec-top:empty{display:none;}
+  #view-exam-taking.pq-mode #ex-btn-mark-review, #view-exam-taking.pq-mode #ex-btn-prev{display:none;}
   .wa-row{display:flex; gap:8px; margin-bottom:10px;}
   .wa-join{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; background:#1faa53; color:#fff; text-decoration:none; margin:0; border:none;}
   .wa-qr-btn{width:auto; flex:none; margin:0; padding:0 16px; background:transparent; border:1.5px solid #1faa53; color:#5fd68c; font-weight:800;}
@@ -1477,7 +1478,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-17.3';
+const APP_VERSION = '2026-10-31.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -4030,6 +4031,7 @@ function renderExamDetailCards(r){
         <tbody>${secRows.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.section)}</td><td class="r">${x.q === null ? '—' : esc(x.q)}</td>${secTiming ? `<td class="r">${esc(x.min)} min</td>` : ''}</tr>`).join('')}</tbody>
         <tfoot><tr><td></td><td>Total</td><td class="r">${totalQ}</td>${secTiming ? `<td class="r">${secTiming.reduce((a, t) => a + Number(t.minutes || 0), 0)} min</td>` : ''}</tr></tfoot>
       </table>
+      ${r.question_seconds ? `<div style="font-size:12px; margin-top:10px; padding:8px 10px; border-radius:8px; border:1px solid var(--warn); line-height:1.5;"><b>⏱ ${esc(r.question_seconds)} seconds for each question.</b> You can press "Save &amp; next" early, but you cannot go back to an earlier question. When the time ends, the next question opens by itself.</div>` : ''}
       ${secTiming ? `<div style="font-size:11.5px; color:var(--text-mute); margin-top:8px; line-height:1.5;">Each section has its own time. You can move to the next section only when the current section's time ends; then the next section opens automatically and the finished section is closed (you cannot go back to it).</div>` : ''}</div>
   `;
 }
@@ -4064,10 +4066,13 @@ async function beginExam(){
   exStatuses = r.status;
   exCurIndex = r.current_index || 0;
   exTimeLeft = r.time_left;          // the timer starts below, when the first question is shown
-  exPlan = (r.section_plan && r.section_plan.length) ? r.section_plan : null;
+  exPqSec = r.question_seconds ? Number(r.question_seconds) : 0;
+  exQLeft = exPqSec ? Number(r.question_time_left != null ? r.question_time_left : exPqSec) : 0;
+  exPlan = (!exPqSec && r.section_plan && r.section_plan.length) ? r.section_plan : null;
   exPlanTotal = exPlan ? exPlan.reduce((a, p) => a + Number(p.seconds), 0) : 0;
   exActiveSec = exPlan ? exSecNow() : -1;
   if (exPlan){ const rg = exSecRange(exActiveSec); if (exCurIndex < rg[0] || exCurIndex >= rg[1]) exCurIndex = rg[0]; }
+  document.getElementById('view-exam-taking').classList.toggle('pq-mode', !!exPqSec);
   buildExamWatermark(`CBT Live Examination — ${session.name} (${session.mobile})`);
   exExamActive = true;
   showView('view-exam-taking');
@@ -4111,6 +4116,19 @@ function startExamTimer(){
   exTickIntervalId = setInterval(() => {
     if (!exExamActive) return;
     exTimeLeft -= 1;
+    if (exPqSec && exTimeLeft > 0){
+      exQLeft -= 1;
+      if (exQLeft <= 0){
+        if (exCurIndex >= exQuestions.length - 1){
+          exTimeLeft = 0; exQLeft = 0; updateExamTimerDisplay();
+          toast('Time for the last question is over. Submitting your exam...', '');
+          doSubmitExam();
+          return;
+        }
+        exPqAdvance(true);
+        return;
+      }
+    }
     if (exPlan && exTimeLeft > 0){
       const k = exSecNow();
       if (k !== exActiveSec){
@@ -4198,6 +4216,18 @@ document.getElementById('view-exam-taking').addEventListener('click', (e) => {
   if (img) openFigure(img.src);
 }, true);
 
+/* ---- time per question: one question at a time, forward only ---- */
+let exPqSec = 0, exQLeft = 0;
+function exPqAdvance(timeUp){
+  exStatuses[exCurIndex] = exAnswers[exCurIndex] !== -1 ? 2 : 1;
+  exCurIndex += 1;
+  exQLeft = exPqSec;
+  renderExamQuestion();
+  if (timeUp) toast(`⏰ Time over — question ${exCurIndex} is closed. Question ${exCurIndex + 1} has started.`, '');
+  autosaveExam();
+}
+function exPqParams(){ return exPqSec ? { p_q_time_left: exQLeft } : {}; }
+
 /* ---- sectional timing: the running section follows from the time used ---- */
 let exPlan = null, exPlanTotal = 0, exActiveSec = -1;
 function exSecNow(){
@@ -4213,7 +4243,10 @@ function exSecLeft(){
 function updateExamTimerDisplay(){
   const el = document.getElementById('ex-timer-txt');
   const fmt = t => `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
-  if (exPlan){
+  if (exPqSec){
+    el.classList.remove('low');
+    el.innerHTML = `<span class="tm-chip tm-sec${exQLeft <= 10 ? ' low' : ''}"><small>This question</small>${fmt(Math.max(0, exQLeft))}</span>`;
+  } else if (exPlan){
     const sl = exSecLeft();
     el.classList.remove('low');
     el.innerHTML = `<span class="tm-chip tm-sec${sl <= 60 ? ' low' : ''}"><small>${esc(exPlan[exActiveSec].section)}</small>${fmt(sl)}</span>`;
@@ -4223,7 +4256,7 @@ function updateExamTimerDisplay(){
   }
   // question number in the middle; sectional exam: total time on the right
   document.getElementById('ex-qprog').textContent = `Question ${exCurIndex+1}/${exQuestions.length}`;
-  document.getElementById('ex-tot-chip').innerHTML = exPlan
+  document.getElementById('ex-tot-chip').innerHTML = (exPlan || exPqSec)
       ? `<span class="tm-chip tm-tot"><small>Total time</small>${String(Math.floor(exTimeLeft/60)).padStart(2,'0')}:${String(exTimeLeft%60).padStart(2,'0')}</span>` : '';
 }
 
@@ -4234,7 +4267,7 @@ async function autosaveExam(){
       p_mobile: session.mobile, p_password: session.password,
       p_answers: exAnswers, p_status: exStatuses,
       p_current_index: exCurIndex, p_time_left: exTimeLeft,
-      p_mark_disconnected: false
+      p_mark_disconnected: false, ...exPqParams()
     });
   }catch(err){ /* silent — retried on next interval */ }
 }
@@ -4282,11 +4315,21 @@ function renderExamQuestion(){
     optList.appendChild(div);
   });
 
-  document.getElementById('ex-btn-prev').disabled = exCurIndex === (exPlan ? exSecRange(exActiveSec)[0] : 0);
+  document.getElementById('ex-btn-prev').disabled = exPqSec ? true : exCurIndex === (exPlan ? exSecRange(exActiveSec)[0] : 0);
   renderExamPalette();
 }
 
 document.getElementById('ex-btn-save-next').addEventListener('click', () => {
+  if (exPqSec){
+    if (exCurIndex >= exQuestions.length - 1){
+      exStatuses[exCurIndex] = exAnswers[exCurIndex] !== -1 ? 2 : 1;
+      renderExamPalette();
+      toast('This is the last question. Press "Submit examination" when you are ready.', '');
+      return;
+    }
+    exPqAdvance(false);
+    return;
+  }
   exStatuses[exCurIndex] = exAnswers[exCurIndex] !== -1 ? 2 : 1;
   goToExamQuestion(exCurIndex + 1);
 });
@@ -4303,6 +4346,10 @@ document.getElementById('ex-btn-prev').addEventListener('click', () => goToExamQ
 
 function goToExamQuestion(idx){
   if (idx < 0) return;
+  if (exPqSec && idx !== exCurIndex){
+    toast(idx < exCurIndex ? 'Earlier questions are closed. You cannot go back.' : 'Use "Save & next" to move to the next question.', '');
+    return;
+  }
   if (exPlan){
     const [a, b] = exSecRange(exActiveSec);
     if (idx < a){ toast(`The earlier section is closed. You cannot go back to it.`, ''); return; }
@@ -4325,8 +4372,10 @@ function goToExamQuestion(idx){
 
 function renderExamPalette(){
   const pal = document.getElementById('ex-palette');
-  const rg = exPlan ? exSecRange(exActiveSec) : [0, exStatuses.length];
-  document.getElementById('ex-sec-top').innerHTML = exPlan ? exPlan.map((p, k) =>
+  const rg = exPqSec ? [exCurIndex, exCurIndex + 1] : exPlan ? exSecRange(exActiveSec) : [0, exStatuses.length];
+  document.getElementById('ex-sec-top').innerHTML = exPqSec
+    ? `<span class="on">⏱ ${exPqSec} seconds per question · no going back</span>`
+    : exPlan ? exPlan.map((p, k) =>
       `<span class="${k === exActiveSec ? 'on' : (k < exActiveSec ? 'done' : '')}">${k < exActiveSec ? '🔒 ' : ''}${esc(p.section)} · ${Math.round(p.seconds / 60)}m</span>`).join('') : '';
   pal.innerHTML = exStatuses.map((st, i) => {
     const cls = `ex-pnode st${st}` + (i === exCurIndex ? ' current' : '') + (i < rg[0] || i >= rg[1] ? ' locked' : '');
@@ -4360,7 +4409,8 @@ async function doSubmitExam(){
   try{
     const r = await rpc('submit_exam_answers', {
       p_mobile: session.mobile, p_password: session.password,
-      p_answers: exAnswers, p_time_left: exTimeLeft
+      p_answers: exAnswers, p_time_left: exTimeLeft,
+      ...(exPqSec ? { p_current_index: exCurIndex, p_q_time_left: exQLeft } : {})
     });
     if (r.error){
       toast(EX_ERROR_MESSAGES[r.error] || 'Submission failed. Please contact your administrator.', 'err');
@@ -4552,7 +4602,7 @@ window.addEventListener('beforeunload', (e) => {
         p_mobile: session.mobile, p_password: session.password,
         p_answers: exAnswers, p_status: exStatuses,
         p_current_index: exCurIndex, p_time_left: exTimeLeft,
-        p_mark_disconnected: true
+        p_mark_disconnected: true, ...exPqParams()
       });
       navigator.sendBeacon(
         `${SUPABASE_URL}/rest/v1/rpc/save_exam_progress?apikey=${encodeURIComponent(SUPABASE_KEY)}`,
