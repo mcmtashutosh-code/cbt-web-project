@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+  Dhyeodaya — Student Portal
+  Copyright (c) 2026 Ashutosh Kumar Dubey. All rights reserved.
+
+  This software and its source code are the property of Ashutosh Kumar Dubey ("Dhyeodaya").
+  No part of it may be copied, modified, distributed, hosted or used to provide
+  a similar service without the prior written permission of the copyright owner.
+  Viewing this page in a web browser does not grant any licence to its code.
+
+  Third-party code included in this file, used under its own licence:
+  - qrcode-generator, Copyright (c) 2009 Kazuhiko Arase, MIT licence
+  Contact: dhyeodaya@gmail.com
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -544,7 +557,7 @@
         New here? <a href="#" id="link-go-register" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Register here</a>
       </div>
     </div>
-    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
 
   <!-- ============ REGISTER ============ -->
@@ -602,7 +615,7 @@
         Already registered? <a href="#" id="link-go-login" style="color:var(--accent-text); font-weight:600; text-decoration:none;">Sign in</a>
       </div>
     </div>
-    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
 
   <!-- ============ PENDING APPROVAL ============ -->
@@ -615,7 +628,7 @@
       <p style="margin-top:14px; font-size:13px; color:var(--text-mute);">Please check back later, or contact your administrator for updates.</p>
       <button class="btn btn-ghost" id="btn-pending-back" style="margin-top:18px;">← Back to sign in</button>
     </div>
-    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
   <!-- ============ HOME MENU ============ -->
   <div class="view" id="view-my-report">
@@ -693,7 +706,7 @@
         <div><div class="mt">My profile</div><div class="ms">Email, class, semester/year, university</div></div>
       </div>
     </div>
-    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
 
   <!-- ============ FEEDBACK ============ -->
@@ -1106,7 +1119,7 @@
   <div class="view" id="view-ch-list">
     <div id="challenge-list"><div class="spin"></div></div>
     <div id="ch-solutions"></div>
-    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
 
   <!-- ============ CHALLENGE: LEADERBOARD ============ -->
@@ -1232,7 +1245,7 @@
       <button class="btn btn-ghost" id="ex-btn-result-home" style="margin-bottom:22px;">Back to home</button>
     </div>
 
-    <div class="footer no-print"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Dhyeodaya · All Rights Reserved</div>
+    <div class="footer no-print"><span class="lock">Powered by <b>Dhyeodaya</b></span> · तैयारी से सफलता तक<br>© 2026 Ashutosh Kumar Dubey (Dhyeodaya) · All rights reserved</div>
   </div>
 
   <!-- ============ LIVE EXAM: REVIEW ============ -->
@@ -1478,7 +1491,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-10-31.1';
+const APP_VERSION = '2026-11-03.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -3518,6 +3531,8 @@ function chUpdateEnds(){
   if (reload && document.getElementById('view-ch-list').classList.contains('active')) setTimeout(loadChallenges, 1500);
 }
 
+let chPenalty = {};
+const chPts = n => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} point${Math.abs(n) === 1 ? '' : 's'}`;
 async function loadChallenges(){
   const listEl = document.getElementById('challenge-list');
   listEl.innerHTML = '<div class="spin"></div>';
@@ -3529,6 +3544,7 @@ async function loadChallenges(){
     loadChallengeSolutions();
     chChallenges = list;
     chEnds = (ends && ends.ok) ? ends.ends || {} : {};
+    chPenalty = (ends && ends.ok) ? ends.penalty || {} : {};
     chClockOffset = (ends && ends.server_now) ? new Date(ends.server_now).getTime() - Date.now() : 0;
     renderChallenges();
   }catch(err){
@@ -3556,7 +3572,7 @@ function renderChallengeSolutions(r){
     <div id="chs-body" style="display:${chsOpen ? 'block' : 'none'}">${items.map((x, n) => {
       const opts = (x.options || []).map((o, i) => o ? `<div class="ch-opt disabled ${i === x.correct_index ? 'correct' : (x.attempted && i === x.selected_option && !x.is_correct ? 'wrong' : '')}" style="opacity:1">${tags[i]}. ${esc(o)}</div>` : '').join('');
       const you = !x.attempted ? '⚪ You did not attempt this question'
-        : (x.is_correct ? `✅ You answered correctly · +${x.points || 0} points` : `❌ Your answer: ${tags[x.selected_option] || '-'} · Correct answer: ${tags[x.correct_index]}`);
+        : (x.is_correct ? `✅ You answered correctly · +${x.points || 0} points` : `❌ Your answer: ${tags[x.selected_option] || '-'} · Correct answer: ${tags[x.correct_index]}${Number(x.points) < 0 ? ' · ' + chPts(Number(x.points)) : ''}`);
       return `<div class="ch-card">
         <div class="ch-badges"><span class="ch-badge topic">Q${n + 1} · 📚 ${esc(x.topic)}</span></div>
         ${x.question ? `<div class="ch-q">${esc(x.question)}</div>` : ''}
@@ -3660,7 +3676,10 @@ function buildChallengeCard(ch){
     });
     const res = document.createElement('div');
     res.className = 'ch-result ' + (ch.is_correct ? 'ok' : 'bad');
-    res.textContent = ch.is_correct ? `✅ Correct! +${ch.points_earned} points earned` : `❌ Wrong answer · 0 points`;
+    const pe = Number(ch.points_earned) || 0;
+    res.textContent = ch.is_correct ? `✅ Correct! +${pe} points earned`
+      : (ch.selected_option === null || ch.selected_option === undefined || ch.selected_option < 0)
+        ? `⏱ Not answered · 0 points` : `❌ Wrong answer · ${chPts(pe)}`;
     card.appendChild(res);
     return card;
   }
@@ -3676,6 +3695,14 @@ function buildChallengeCard(ch){
   preAcceptNote.className = 'ch-pre-note';
   preAcceptNote.textContent = 'Question and options are hidden until you accept — the timer starts the moment you do.';
   card.appendChild(preAcceptNote);
+  const pen = Number(chPenalty[String(ch.id)]) || 0;
+  if (pen > 0){
+    const negNote = document.createElement('div');
+    negNote.className = 'ch-pre-note';
+    negNote.style.cssText = 'color:#ff8a7d; font-weight:600;';
+    negNote.textContent = `Negative marking: a wrong answer costs ${pen} point${pen === 1 ? '' : 's'}. Not answering costs nothing.`;
+    card.appendChild(negNote);
+  }
 
   const timerEl = document.createElement('div');
   timerEl.className = 'ch-timer';
@@ -3779,7 +3806,7 @@ function buildChallengeCard(ch){
       ch.points_earned = r.points_earned;
       ch.correct_index = r.correct_index;
       card.replaceWith(buildChallengeCard(ch));
-      toast(r.is_correct ? `Correct! +${r.points_earned} points.` : 'Answer submitted.', r.is_correct ? 'ok' : '');
+      toast(r.is_correct ? `Correct! +${r.points_earned} points.` : (Number(r.points_earned) < 0 ? `Wrong answer · ${chPts(Number(r.points_earned))}.` : 'Answer submitted.'), r.is_correct ? 'ok' : '');
       rpc('check_and_record_milestones', { p_mobile: session.mobile, p_password: session.password }).catch(()=>{});
     }catch(err){
       toast(`Submit failed: ${err.message || 'unknown error'}`, 'err');
