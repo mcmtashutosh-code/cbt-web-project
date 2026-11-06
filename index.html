@@ -1406,6 +1406,30 @@ async function rpcGetAll(fn, body){
 }
 function studentCreds(){ return session ? { p_mobile: session.mobile, p_password: session.password } : { p_mobile: '', p_password: '' }; }
 
+/* Practice bank, light download: the menus need only counts, a session needs only its topics.
+   Falls back to the full bank if the server does not have the new functions yet. */
+const pqNorm = (v, d = 'General') => (v || '').trim() || d;
+const pqLevel = v => { const s = (v || '').trim().toLowerCase();
+  return (s === 'moderate' || s === 'medium') ? 'Moderate' : (s === 'difficult' || s === 'hard') ? 'Difficult' : 'Easy'; };
+async function practiceCatalog(){            // -> [{ s: subject, t: topic, d: level, n: count }]
+  try{
+    const r = await rpc('get_practice_catalog', studentCreds());
+    if (r && r.ok && Array.isArray(r.rows)) return r.rows;
+  }catch(e){ /* older server: use the full bank below */ }
+  const rows = await rpcGetAll('get_practice_questions', studentCreds());
+  const m = {};
+  rows.forEach(r => { const k = [pqNorm(r.subject), pqNorm(r.topic), pqLevel(r.difficulty)].join('|||'); m[k] = (m[k] || 0) + 1; });
+  return Object.entries(m).map(([k, n]) => { const [s, t, d] = k.split('|||'); return { s, t, d, n }; });
+}
+async function practicePool(topics, level){   // topics: [{ subject, topic }]
+  try{
+    return await rpcGetAll('get_practice_pool', { ...studentCreds(), p_topics: topics, p_level: level || 'All Levels' });
+  }catch(e){
+    const rows = await rpcGetAll('get_practice_questions', studentCreds());
+    return rows.filter(r => topics.some(x => x.subject === pqNorm(r.subject) && x.topic === pqNorm(r.topic)));
+  }
+}
+
 async function restGetAll(table, query){
   const pageSize = 1000;
   let all = [];
@@ -1491,7 +1515,7 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-11-03.1';
+const APP_VERSION = '2026-11-06.1';
 const UPD_SAFE_VIEWS = ['view-login', 'view-register', 'view-pending-approval', 'view-home', 'view-my-report',
   'view-exam-history', 'view-profile', 'view-messages', 'view-feedback', 'view-password', 'view-mock-history', 'view-prac-progress'];
 let updAvailable = false, updDismissed = false;
@@ -2339,19 +2363,13 @@ let pQStart = null;
 async function loadPracticeSetup(){
   document.getElementById('setup-error').textContent = '';
   try{
-    const rows = await rpcGetAll('get_practice_questions', studentCreds());
+    const cat = await practiceCatalog();
     subjectsData = {};
-    rows.forEach(r => {
-      const sub = (r.subject || '').trim() || 'General';
-      const top = (r.topic || '').trim() || 'General';
-      let lvl = (r.difficulty || '').trim().toLowerCase();
-      if (lvl === 'easy') lvl = 'Easy';
-      else if (lvl === 'moderate' || lvl === 'medium') lvl = 'Moderate';
-      else if (lvl === 'difficult' || lvl === 'hard') lvl = 'Difficult';
-      else lvl = 'Easy';
+    cat.forEach(c => {
+      const sub = c.s, top = c.t, lvl = c.d;
       subjectsData[sub] = subjectsData[sub] || {};
       subjectsData[sub][top] = subjectsData[sub][top] || {};
-      subjectsData[sub][top][lvl] = (subjectsData[sub][top][lvl] || 0) + 1;
+      subjectsData[sub][top][lvl] = (subjectsData[sub][top][lvl] || 0) + (Number(c.n) || 0);
     });
     const subSel = document.getElementById('sel-subject');
     subSel.innerHTML = '<option value="">-- Select --</option>' +
@@ -2456,7 +2474,7 @@ async function startPractice(){
   if (!selectedCount || selectedCount < 1){ errEl.textContent = 'Please choose a valid number of questions.'; return; }
 
   try{
-    const rows = await rpcGetAll('get_practice_questions', studentCreds());
+    const rows = await practicePool([{ subject: sub, topic: top }], lvl);
     const norm = (v, d='General') => (v || '').trim() || d;
     const normDiff = (v) => {
       const s = (v||'').trim().toLowerCase();
@@ -2781,14 +2799,11 @@ async function loadMockSetup(){
   subjSel.innerHTML = '<option value="">Loading subjects...</option>';
   mockSelections = {};
   try{
-    const rows = await rpcGetAll('get_practice_questions', studentCreds());
-    const norm = (v, d='General') => (v || '').trim() || d;
+    const cat = await practiceCatalog();
     mockGrouped = {};
-    rows.forEach(r => {
-      const sub = norm(r.subject);
-      const top = norm(r.topic);
-      mockGrouped[sub] = mockGrouped[sub] || {};
-      mockGrouped[sub][top] = (mockGrouped[sub][top] || 0) + 1;
+    cat.forEach(c => {
+      mockGrouped[c.s] = mockGrouped[c.s] || {};
+      mockGrouped[c.s][c.t] = (mockGrouped[c.s][c.t] || 0) + (Number(c.n) || 0);
     });
     const subjects = Object.keys(mockGrouped).sort();
     if (!subjects.length){
@@ -2889,7 +2904,7 @@ document.getElementById('btn-mock-start').addEventListener('click', async () => 
   const negativeMarking = document.getElementById('mock-neg-on').classList.contains('sel');
 
   try{
-    const rows = await rpcGetAll('get_practice_questions', studentCreds());
+    const rows = await practicePool(selections.map(sel => ({ subject: sel.subject, topic: sel.topic })), 'All Levels');
     const norm = (v, d='General') => (v || '').trim() || d;
     const topicGroups = selections.map(sel => {
       const pool = rows.filter(r => norm(r.subject) === sel.subject && norm(r.topic) === sel.topic);
