@@ -15,7 +15,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-8HPBRWPknRTluqzAqTd2UYDxFHfVLIelFx/rFgl2MkQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-OVe6MzzP3eslZ2ONUH8ZCFTkgJjfGVAmBcsK4jzlvfc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Online Examination Portal</title>
 <link rel="manifest" href="manifest.json">
@@ -866,18 +866,25 @@
       <div style="font-weight:700; color:#ff8a7d; margin-bottom:4px;">🗑 Delete my account</div>
       <div class="avail-note" style="margin:0 0 8px;">Permanently deletes your account and everything linked to it in this institute: live-test results, practice and mock tests, challenge points, messages and feedback. This cannot be undone.</div>
       <div id="del-acc-step1">
-        <div class="avail-note" style="margin:0 0 8px;">Step 1: we will email a one-time password (OTP) to your registered email address.</div>
-        <button class="btn" id="btn-del-otp" type="button" style="border:1px solid #e74c3c; color:#ff8a7d; background:transparent;">📧 Send OTP to my email</button>
+        <div class="avail-note" style="margin:0 0 6px;"><b>Step 1 of 3:</b> enter your password. We will then email a one-time password (OTP) to your registered email address.</div>
+        <label class="field-label">Your password</label>
+        <input id="del-acc-pass" type="password" autocomplete="current-password" placeholder="Enter your password">
+        <button class="btn" id="btn-del-otp" type="button" style="margin-top:8px; border:1px solid #e74c3c; color:#ff8a7d; background:transparent;">Confirm and send OTP</button>
       </div>
       <div id="del-acc-step2" style="display:none;">
-        <div class="avail-note" id="del-acc-sent" style="margin:0 0 8px;"></div>
+        <div class="avail-note" style="margin:0 0 6px;"><b>Step 2 of 3:</b> an OTP has been sent to your registered email (check spam too). It is valid for 10 minutes.</div>
         <label class="field-label">OTP from your email</label>
         <input id="del-acc-otp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit OTP">
-        <label class="field-label">Type DELETE to confirm</label>
-        <input id="del-acc-confirm" type="text" autocomplete="off" placeholder="DELETE">
-        <button class="btn" id="btn-del-acc" type="button" style="margin-top:8px; border:1px solid #e74c3c; color:#ff8a7d; background:transparent;">Delete my account permanently</button>
+        <button class="btn" id="btn-del-verify" type="button" style="margin-top:8px; border:1px solid #e74c3c; color:#ff8a7d; background:transparent;">Verify OTP</button>
         <button class="btn btn-ghost btn-sm" id="btn-del-resend" type="button" style="margin-top:6px;">Resend OTP</button>
       </div>
+      <div id="del-acc-step3" style="display:none;">
+        <div class="avail-note" style="margin:0 0 6px;"><b>Step 3 of 3:</b> OTP verified. Type <b>DELETE</b> to delete your account permanently.</div>
+        <label class="field-label">Type DELETE to confirm</label>
+        <input id="del-acc-confirm" type="text" autocomplete="off" placeholder="DELETE">
+        <button class="btn" id="btn-del-acc" type="button" style="margin-top:8px; border:1px solid #e74c3c; color:#ff8a7d; background:#3a1414;">🗑 Delete my account permanently</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btn-del-cancel" type="button" style="margin-top:6px; display:none;">Cancel</button>
       <div class="error-text" id="del-acc-error"></div>
     </div>
   </div>
@@ -1535,10 +1542,10 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-11-06.6';
+const APP_VERSION = '2026-11-06.7';
 /* What's new: shown in the update banner, and once after the app updates. Newest first, keep a few.
    Add an entry here with every new APP_VERSION. */
-const APP_NOTES = /*NOTES*/[{"v": "2026-11-06.6", "date": "6 Nov 2026", "items": ["Deleting your account now needs an OTP sent to your email, then typing DELETE, for your safety."]},{"v": "2026-11-06.5", "date": "6 Nov 2026", "items": ["You can now delete your own account from My profile."]},{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
+const APP_NOTES = /*NOTES*/[{"v": "2026-11-06.7", "date": "6 Nov 2026", "items": ["Deleting your account is now done in 3 safe steps: your password, an OTP sent to your email, then typing DELETE."]},{"v": "2026-11-06.6", "date": "6 Nov 2026", "items": ["Deleting your account now needs an OTP sent to your email, then typing DELETE, for your safety."]},{"v": "2026-11-06.5", "date": "6 Nov 2026", "items": ["You can now delete your own account from My profile."]},{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
 const WN_KEY = 'dy_seen_version_student';
 let updNewNotes = [];
 function wnParse(text){
@@ -1756,44 +1763,59 @@ function updateTopBack(id){
   }
 }
 
-async function delAccSendOtp(btn){
+// Delete account: 1) password  2) email OTP  3) type DELETE
+let delAcc = { pass: '', otp: '' };
+function delAccStep(n){
+  [1, 2, 3].forEach(k => { document.getElementById('del-acc-step' + k).style.display = k === n ? 'block' : 'none'; });
+  document.getElementById('btn-del-cancel').style.display = n > 1 ? 'block' : 'none';
+  if (n === 1){ delAcc = { pass: '', otp: '' }; ['del-acc-pass', 'del-acc-otp', 'del-acc-confirm'].forEach(id => { document.getElementById(id).value = ''; }); }
+}
+async function delAccSendOtp(btn, pass){
   const err = document.getElementById('del-acc-error'); err.textContent = '';
   if (!session) return;
-  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Sending...';
-  const msgs = { wrong_password: 'Your session has expired. Please sign in again.', no_email: 'Please add your email address above and save your profile first.',
+  if (!pass){ err.textContent = 'Please enter your password.'; return; }
+  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Please wait...';
+  const msgs = { wrong_password: 'Incorrect password.', no_email: 'Please add your email address above and save your profile first.',
                  too_soon: 'Please wait a minute before asking for another OTP.', daily_limit: 'Too many OTP requests today. Please try again tomorrow.',
                  test_id: 'The admin test ID cannot be deleted from here.', email_send_failed: 'The email could not be sent. Please try again later.' };
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/password-reset-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-      body: JSON.stringify({ mobile: session.mobile, password: session.password, purpose: 'delete' })
+      body: JSON.stringify({ mobile: session.mobile, password: pass, purpose: 'delete' })
     });
     const data = await res.json();
-    if (data && data.ok){
-      document.getElementById('del-acc-step1').style.display = 'none';
-      document.getElementById('del-acc-step2').style.display = 'block';
-      document.getElementById('del-acc-sent').textContent = 'Step 2: an OTP has been sent to your registered email (check spam too). It is valid for 10 minutes.';
-    } else err.textContent = msgs[data && data.error] || 'Unable to send the OTP. Please try again.';
+    if (data && data.ok){ delAcc.pass = pass; delAccStep(2); }
+    else err.textContent = msgs[data && data.error] || 'Unable to send the OTP. Please try again.';
   }catch(e){ err.textContent = 'Connection error. Please try again.'; }
   btn.disabled = false; btn.textContent = label;
 }
-document.getElementById('btn-del-otp').addEventListener('click', e => delAccSendOtp(e.currentTarget));
-document.getElementById('btn-del-resend').addEventListener('click', e => delAccSendOtp(e.currentTarget));
-document.getElementById('btn-del-acc').addEventListener('click', async () => {
+document.getElementById('btn-del-otp').addEventListener('click', e => delAccSendOtp(e.currentTarget, document.getElementById('del-acc-pass').value));
+document.getElementById('btn-del-resend').addEventListener('click', e => delAccSendOtp(e.currentTarget, delAcc.pass));
+document.getElementById('btn-del-cancel').addEventListener('click', () => { document.getElementById('del-acc-error').textContent = ''; delAccStep(1); });
+document.getElementById('btn-del-verify').addEventListener('click', async () => {
   const err = document.getElementById('del-acc-error'); err.textContent = '';
   const otp = document.getElementById('del-acc-otp').value.trim();
-  const conf = document.getElementById('del-acc-confirm').value.trim();
   if (!/^\d{6}$/.test(otp)){ err.textContent = 'Enter the 6-digit OTP from your email.'; return; }
+  const btn = document.getElementById('btn-del-verify'); btn.disabled = true;
+  try{
+    const r = await rpc('student_check_delete_otp', { p_mobile: session.mobile, p_password: delAcc.pass, p_otp: otp });
+    if (r && r.ok){ delAcc.otp = otp; delAccStep(3); }
+    else err.textContent = (r && r.error) || 'Unable to verify the OTP.';
+  }catch(e){ err.textContent = 'Connection error. Please try again.'; }
+  btn.disabled = false;
+});
+document.getElementById('btn-del-acc').addEventListener('click', async () => {
+  const err = document.getElementById('del-acc-error'); err.textContent = '';
+  const conf = document.getElementById('del-acc-confirm').value.trim();
   if (conf.toUpperCase() !== 'DELETE'){ err.textContent = 'Type DELETE to confirm.'; return; }
   if (!session || !confirm('Delete your account permanently?\n\nAll your results and history in this institute will be erased. This cannot be undone.')) return;
   const btn = document.getElementById('btn-del-acc'); btn.disabled = true;
   try{
-    const r = await rpc('student_delete_account', { p_mobile: session.mobile, p_password: session.password, p_otp: otp, p_confirm: conf });
+    const r = await rpc('student_delete_account', { p_mobile: session.mobile, p_password: delAcc.pass, p_otp: delAcc.otp, p_confirm: conf });
     if (r && r.ok){
       try{ localStorage.removeItem(mockPauseKey()); }catch(_e){}
-      ['del-acc-otp', 'del-acc-confirm'].forEach(id => { document.getElementById(id).value = ''; });
-      document.getElementById('del-acc-step1').style.display = 'block'; document.getElementById('del-acc-step2').style.display = 'none';
+      delAccStep(1);
       doLogout();
       toast('Your account has been deleted.', 'ok');
     } else err.textContent = (r && r.error) || 'Unable to delete the account.';
