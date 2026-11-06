@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!--
+  Dhyeodaya — Maintenance Page
+  Copyright (c) 2026 Ashutosh Kumar Dubey. All rights reserved.
+
+  This software and its source code are the property of Ashutosh Kumar Dubey ("Dhyeodaya").
+  No part of it may be copied, modified, distributed, hosted or used to provide
+  a similar service without the prior written permission of the copyright owner.
+  Viewing this page in a web browser does not grant any licence to its code.
+  Contact: dhyeodaya@gmail.com
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qgdbgRBdLPHJH3SmSYyIe5G/Qvy+5BsO5RjeiCmwD+0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Maintenance — CBT Examination Portal</title>
+<style>
+  :root{
+    --bg:#0b1726; --bg2:#0f2033; --panel:#12263b; --line:#1f3a55;
+    --text:#e6eef6; --muted:#8fa6bd; --accent:#14b8a6; --accent-ink:#04201d;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#eef4f8; --bg2:#e3edf3; --panel:#ffffff; --line:#cddbe5;
+      --text:#0f2033; --muted:#4d6479; --accent:#0f9488; --accent-ink:#ffffff;
+    }
+  }
+  *{ box-sizing:border-box; margin:0; }
+  html,body{ height:100%; }
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif;
+    background: radial-gradient(120% 80% at 0% 0%, var(--bg2), var(--bg) 60%);
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    line-height:1.55;
+  }
+  main{ width:100%; max-width:520px; }
+  .brand{ display:flex; align-items:center; gap:12px; margin-bottom:40px; }
+  .badge{
+    background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:14px; padding:6px 11px; border-radius:8px; letter-spacing:.02em;
+  }
+  .brand span{ font-weight:600; font-size:17px; }
+
+  /* The one memorable element: a quiet, slowly turning gear-ring */
+  .ring{
+    width:64px; height:64px; margin-bottom:28px;
+    border-radius:50%;
+    border:3px dashed var(--accent);
+    animation: turn 14s linear infinite;
+  }
+  @keyframes turn{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .ring{ animation:none; } }
+
+  h1{ font-size:clamp(26px, 6vw, 34px); line-height:1.2; font-weight:700; margin-bottom:14px; }
+  .lead{ color:var(--muted); font-size:17px; margin-bottom:28px; }
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px; margin-bottom:18px;
+  }
+  .panel p + p{ margin-top:10px; }
+  .when{ font-size:15px; color:var(--muted); }
+  .when strong{ color:var(--text); font-size:17px; display:block; margin-top:2px; }
+  .safe{ display:flex; gap:12px; align-items:flex-start; }
+  .safe .dot{
+    flex:none; width:10px; height:10px; border-radius:50%;
+    background:var(--accent); margin-top:8px;
+  }
+  .en{ color:var(--muted); font-size:14px; margin-top:22px; }
+  footer{ margin-top:34px; font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <div class="badge">CBT</div>
+    <span>Examination Portal</span>
+  </div>
+
+  <div class="ring" aria-hidden="true"></div>
+
+  <h1>Scheduled maintenance in progress</h1>
+  <p class="lead">We are upgrading the platform to make it faster and more secure. Sign-in, practice, mock tests and exams are temporarily unavailable.</p>
+
+  <div class="panel when">
+    Expected to be back
+    <strong id="return-date">— to be announced —</strong>
+  </div>
+
+  <div class="panel safe">
+    <div class="dot" aria-hidden="true"></div>
+    <div>
+      <p><strong>Your data is safe.</strong></p>
+      <p style="color:var(--muted)">Your account, practice progress, mock tests and exam results are fully preserved. Once the portal is back, sign in with your usual mobile number and password.</p>
+    </div>
+  </div>
+
+
+  <footer id="contact"></footer>
+</main>
+
+<script>
+  /* ============================================================
+     EDIT THESE TWO LINES
+     ============================================================ */
+  const RETURN_DATE = "";   // e.g. "29 September 2026, 6:00 PM"
+  const CONTACT     = "";   // e.g. "For queries, contact: 98xxxxxxxx"
+
+  if (RETURN_DATE) document.getElementById('return-date').textContent = RETURN_DATE;
+  if (CONTACT)     document.getElementById('contact').textContent = CONTACT;
+</script>
+</body>
+</html>
