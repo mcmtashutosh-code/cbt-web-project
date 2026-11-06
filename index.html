@@ -15,7 +15,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-m2vultzXT7BOrV0iYK5xASQM7brsx8E+X5G2KChhbic='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-HLcRTUdLghoUwRS70nEaen1KSiLXNHdp1UFCP2VuM7k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Online Examination Portal</title>
 <link rel="manifest" href="manifest.json">
@@ -861,6 +861,17 @@
     <div class="error-text" id="pf-error"></div>
     <div id="pf-success" style="color:var(--ok, #16a34a); font-size:13px; margin-top:4px;"></div>
     <button class="btn btn-primary" id="btn-save-profile" style="margin:10px 0 22px;">💾 Save profile</button>
+
+    <div class="pcard" id="del-acc-card" style="border:1px solid rgba(231,76,60,.45); margin:6px 0 22px;">
+      <div style="font-weight:700; color:#ff8a7d; margin-bottom:4px;">🗑 Delete my account</div>
+      <div class="avail-note" style="margin:0 0 8px;">Permanently deletes your account and everything linked to it in this institute: live-test results, practice and mock tests, challenge points, messages and feedback. This cannot be undone.</div>
+      <label class="field-label">Your password</label>
+      <input id="del-acc-pass" type="password" autocomplete="current-password" placeholder="Enter your password">
+      <label class="field-label">Type DELETE to confirm</label>
+      <input id="del-acc-confirm" type="text" autocomplete="off" placeholder="DELETE">
+      <div class="error-text" id="del-acc-error"></div>
+      <button class="btn" id="btn-del-acc" type="button" style="margin-top:8px; border:1px solid #e74c3c; color:#ff8a7d; background:transparent;">Delete my account permanently</button>
+    </div>
   </div>
 
   <!-- ============ PRACTICE: SETUP ============ -->
@@ -1516,10 +1527,10 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-11-06.4';
+const APP_VERSION = '2026-11-06.5';
 /* What's new: shown in the update banner, and once after the app updates. Newest first, keep a few.
    Add an entry here with every new APP_VERSION. */
-const APP_NOTES = /*NOTES*/[{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
+const APP_NOTES = /*NOTES*/[{"v": "2026-11-06.5", "date": "6 Nov 2026", "items": ["You can now delete your own account from My profile."]},{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
 const WN_KEY = 'dy_seen_version_student';
 let updNewNotes = [];
 function wnParse(text){
@@ -1736,6 +1747,26 @@ function updateTopBack(id){
     btn.onclick = () => showView('view-ch-list');
   }
 }
+
+document.getElementById('btn-del-acc').addEventListener('click', async () => {
+  const err = document.getElementById('del-acc-error'); err.textContent = '';
+  const pass = document.getElementById('del-acc-pass').value;
+  const conf = document.getElementById('del-acc-confirm').value.trim();
+  if (!pass){ err.textContent = 'Please enter your password.'; return; }
+  if (conf.toUpperCase() !== 'DELETE'){ err.textContent = 'Type DELETE to confirm.'; return; }
+  if (!session || !confirm('Delete your account permanently?\n\nAll your results and history in this institute will be erased. This cannot be undone.')) return;
+  const btn = document.getElementById('btn-del-acc'); btn.disabled = true;
+  try{
+    const r = await rpc('student_delete_account', { p_mobile: session.mobile, p_password: pass, p_confirm: conf });
+    if (r && r.ok){
+      try{ localStorage.removeItem(mockPauseKey()); }catch(_e){}
+      document.getElementById('del-acc-pass').value = ''; document.getElementById('del-acc-confirm').value = '';
+      doLogout();
+      toast('Your account has been deleted.', 'ok');
+    } else err.textContent = (r && r.error) || 'Unable to delete the account.';
+  }catch(e){ err.textContent = 'Connection error. Please try again.'; }
+  btn.disabled = false;
+});
 
 function doLogout(){
   waJoinAt = 0; document.getElementById('wa-row').style.display = 'none';
