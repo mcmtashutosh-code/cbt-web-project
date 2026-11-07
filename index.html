@@ -15,7 +15,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-RTo3BkEsnAEmD5jTBXI4vVy0KbfAWjPagu3+7U12nCA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-bQrP1U/QTNkkV5fScdSYs9PnjQ6+QAJKMCt/P8sMMiE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://iyzujwixwfydmkzmhrxo.supabase.co; media-src 'self' blob: https:; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Online Examination Portal</title>
 <link rel="manifest" href="manifest.json">
@@ -1542,10 +1542,10 @@ function showTestIdStrip(on){
    When a new file is uploaded, students see "Update available" — but ONLY on
    safe screens (sign-in, home, reports, profile …). Never during a live exam,
    practice, mock test, challenge or on a result screen; the update waits. */
-const APP_VERSION = '2026-11-07.1';
+const APP_VERSION = '2026-11-07.3';
 /* What's new: shown in the update banner, and once after the app updates. Newest first, keep a few.
    Add an entry here with every new APP_VERSION. */
-const APP_NOTES = /*NOTES*/[{"v": "2026-11-07.1", "date": "7 Nov 2026", "items": ["Festival greetings: crackers on Diwali and colours on Holi when your platform turns them on (never during tests or practice). Tap \u2715 to stop."]},{"v": "2026-11-06.7", "date": "6 Nov 2026", "items": ["Deleting your account is now done in 3 safe steps: your password, an OTP sent to your email, then typing DELETE."]},{"v": "2026-11-06.6", "date": "6 Nov 2026", "items": ["Deleting your account now needs an OTP sent to your email, then typing DELETE, for your safety."]},{"v": "2026-11-06.5", "date": "6 Nov 2026", "items": ["You can now delete your own account from My profile."]},{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
+const APP_NOTES = /*NOTES*/[{"v": "2026-11-07.3", "date": "7 Nov 2026", "items": ["Festival tap effect now works on every button, card and link, and keeps working after you close the greeting (never during a test or practice)."]},{"v": "2026-11-07.2", "date": "7 Nov 2026", "items": ["During festivals, buttons now burst into crackers or colours when tapped (never during a test or practice)."]},{"v": "2026-11-07.1", "date": "7 Nov 2026", "items": ["Festival greetings: crackers on Diwali and colours on Holi when your platform turns them on (never during tests or practice). Tap \u2715 to stop."]},{"v": "2026-11-06.7", "date": "6 Nov 2026", "items": ["Deleting your account is now done in 3 safe steps: your password, an OTP sent to your email, then typing DELETE."]},{"v": "2026-11-06.6", "date": "6 Nov 2026", "items": ["Deleting your account now needs an OTP sent to your email, then typing DELETE, for your safety."]},{"v": "2026-11-06.5", "date": "6 Nov 2026", "items": ["You can now delete your own account from My profile."]},{"v": "2026-11-06.4", "date": "6 Nov 2026", "items": ["Privacy Policy link added at the bottom of every screen."]},{"v": "2026-11-06.3", "date": "6 Nov 2026", "items": ["You will now see what is new whenever the app is updated."]}, {"v": "2026-11-06.2", "date": "6 Nov 2026", "items": ["Practice and mock tests open faster and use much less mobile data.", "Security update: stronger protection for your account and the app."]}, {"v": "2026-11-03.1", "date": "3 Nov 2026", "items": ["Daily challenge: your institute may set minus marking for a wrong answer. It is shown before you accept a challenge. Not answering never costs points."]}]/*END*/;
 const WN_KEY = 'dy_seen_version_student';
 let updNewNotes = [];
 function wnParse(text){
@@ -5416,6 +5416,60 @@ function fxPlay(mode, message, ms, onStopClick){
   fxRaf = requestAnimationFrame(frame);
 }
 
+// a small burst where a button is tapped (crackers on Diwali, a puff of colour on Holi)
+function fxBurst(mode, x, y){
+  if (mode !== 'diwali' && mode !== 'holi') return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const c = document.createElement('canvas');
+  c.setAttribute('aria-hidden', 'true');
+  c.style.cssText = 'position:fixed; inset:0; width:100%; height:100%; z-index:9993; pointer-events:none;';
+  c.width = Math.floor(innerWidth * dpr); c.height = Math.floor(innerHeight * dpr);
+  document.body.appendChild(c);
+  const ctx = c.getContext('2d'), R = (a, b) => a + Math.random() * (b - a);
+  const COLS = mode === 'diwali' ? ['#ffd23f', '#ff8c42', '#ff4d4d', '#ff4fa3', '#7CFF6B', '#4ad8ff', '#ffffff']
+                                 : ['#ff4fa3', '#ffd23f', '#3ddc84', '#4aa3ff', '#ff8c42', '#a66cff'];
+  const cx = x * dpr, cy = y * dpr, parts = [];
+  const main = COLS[Math.floor(Math.random() * COLS.length)];
+  const n = mode === 'diwali' ? 30 : 26;
+  for (let i = 0; i < n; i++){
+    const a = (Math.PI * 2 * i) / n + R(-0.15, 0.15), v = R(1.6, 3.4) * dpr;
+    parts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (mode === 'holi' ? 0.6 * dpr : 0),
+                 c: i % 3 ? main : COLS[Math.floor(Math.random() * COLS.length)], s: R(1.3, mode === 'holi' ? 3.6 : 2.3) * dpr, life: R(28, 44), age: 0 });
+  }
+  const puff = mode === 'holi' ? { r: 0, max: R(36, 60) * dpr, c: main } : null;
+  let last = performance.now(), raf = 0, t = 0;
+  function frame(now){
+    const dt = Math.min(2.5, (now - last) / 16.7); last = now; t += dt;
+    ctx.clearRect(0, 0, c.width, c.height);
+    if (puff){
+      puff.r += (puff.max - puff.r) * 0.12 * dt;
+      const a = Math.max(0, 1 - t / 45) * 0.5;
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, puff.r);
+      g.addColorStop(0, puff.c + Math.round(a * 255).toString(16).padStart(2, '0')); g.addColorStop(1, puff.c + '00');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, puff.r, 0, Math.PI * 2); ctx.fill();
+    }
+    let alive = 0;
+    for (const p of parts){
+      p.age += dt; if (p.age >= p.life) continue; alive++;
+      p.vx *= 0.96; p.vy = p.vy * 0.96 + 0.06 * dpr * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = 1 - p.age / p.life; ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (alive || t < 45) raf = requestAnimationFrame(frame); else c.remove();
+  }
+  raf = requestAnimationFrame(frame);
+  setTimeout(() => { cancelAnimationFrame(raf); c.remove(); }, 2500);   // safety
+}
+const FX_CLICK_SEL = 'button, a, label, select, input[type="checkbox"], input[type="radio"], input[type="submit"], .btn, .menu-card, .mr-card, .sess-card, .rev-card, .info-card, .result-card, .ex-detail-card, .tab, .sec-btn, .filter-chip, .count-chip, .rev-tab, .sr-tab, .fees-chip, .pyq-chip, [role="button"], [data-act], [id^="menu-"]';
+
+const FX_NO_CLICK_VIEWS = ['view-exam-briefing', 'view-exam-taking', 'view-prac-exam', 'view-mock-exam'];
+function fxClickAllowed(){
+  const v = document.querySelector('.view.active');
+  if (!v || FX_NO_CLICK_VIEWS.includes(v.id)) return false;
+  if (v.id === 'view-ch-list' && Object.values(chTimers || {}).some(t => t && t.intervalId)) return false;   // a challenge is running
+  return true;
+}
 /* Festival effect in the portal: on opening, after sign-in and now and then on calm screens.
    Never during a live exam, practice, mock test, challenge or a result screen (same safe list as updates). */
 let fxSetting = { mode: 'off' }, fxLastAt = 0, fxOffThisVisit = false, fxHomeDone = false;
@@ -5441,6 +5495,17 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') fxRefresh().then(() => { if (Date.now() - fxLastAt > 2 * 60 * 1000) fxMaybe(5000); });
   else fxStop();
 });
+
+// tap effect on buttons: everywhere except while a test or practice is running
+// (the ✕ on the greeting stops only the big show; taps keep their small burst)
+document.addEventListener('click', (e) => {
+  if (fxSetting.mode === 'off') return;
+  const el = e.target.closest(FX_CLICK_SEL);
+  if (!el || !fxClickAllowed()) return;
+  let x = e.clientX, y = e.clientY;
+  if (!x && !y){ const r = el.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
+  fxBurst(fxSetting.mode, x, y);
+}, true);
 </script>
 </body>
 </html>
